@@ -1,0 +1,9489 @@
+{
+  "upstream": "52787528700d49aff80a798b1e2490e4d537ea2b",
+  "cases": [
+    {
+      "history": [],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 31
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 2
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 3
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 5
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 9
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 15
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 26
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 44
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 44,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "done",
+        "rate": 40
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 9
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 15
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 26
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 44
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 44,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 60
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 44,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 60,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "done",
+        "rate": 60
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 34
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 34,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 58
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 34,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 58,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 60
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 34,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 58,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 60,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "done",
+        "rate": 60
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "done",
+        "rate": 60
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 2
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 3
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 5
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 9
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 15
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 26
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 44
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 44,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "done",
+        "rate": 40
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 9
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 15
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 26
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 44
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 44,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 60
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 44,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 60,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "done",
+        "rate": 60
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 34
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 34,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 58
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 34,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 58,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 60
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 34,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 58,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 60,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "done",
+        "rate": 60
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "done",
+        "rate": 60
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 2
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 3
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 5
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 9
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 15
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 26
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 44
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 44,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "done",
+        "rate": 40
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 9
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 15
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 26
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 44
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 44,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 60
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 44,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 60,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "done",
+        "rate": 60
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 34
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 34,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 58
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 34,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 58,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 60
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 34,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 58,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 60,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "done",
+        "rate": 60
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "done",
+        "rate": 60
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 2
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 3
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 5
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 9
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 15
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 26
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 44
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 44,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "done",
+        "rate": 40
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 9
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 15
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 26
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 44
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 44,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 60
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 44,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 60,
+          "frameMs": 19
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 53
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 44,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 60,
+          "frameMs": 19
+        },
+        {
+          "rate": 53,
+          "frameMs": 17.25
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "done",
+        "rate": 48
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 34
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 34,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 58
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 34,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 58,
+          "frameMs": 18.5
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 52
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 34,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 58,
+          "frameMs": 18.5
+        },
+        {
+          "rate": 52,
+          "frameMs": 17
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 60
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 34,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 58,
+          "frameMs": 18.5
+        },
+        {
+          "rate": 52,
+          "frameMs": 17
+        },
+        {
+          "rate": 60,
+          "frameMs": 19
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 53
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 34,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 58,
+          "frameMs": 18.5
+        },
+        {
+          "rate": 52,
+          "frameMs": 17
+        },
+        {
+          "rate": 60,
+          "frameMs": 19
+        },
+        {
+          "rate": 53,
+          "frameMs": 17.25
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "done",
+        "rate": 48
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 19
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 53
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 19
+        },
+        {
+          "rate": 53,
+          "frameMs": 17.25
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "done",
+        "rate": 48
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 2
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 3
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 5
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 9
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 15
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 26
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 17
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 44
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 17
+        },
+        {
+          "rate": 44,
+          "frameMs": 26
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "done",
+        "rate": 23
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 9
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 15
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 26
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 17
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 44
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 17
+        },
+        {
+          "rate": 44,
+          "frameMs": 26
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 28
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 17
+        },
+        {
+          "rate": 44,
+          "frameMs": 26
+        },
+        {
+          "rate": 28,
+          "frameMs": 18
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "done",
+        "rate": 23
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 34
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 34,
+          "frameMs": 21
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 27
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 34,
+          "frameMs": 21
+        },
+        {
+          "rate": 27,
+          "frameMs": 17.5
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 46
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 34,
+          "frameMs": 21
+        },
+        {
+          "rate": 27,
+          "frameMs": 17.5
+        },
+        {
+          "rate": 46,
+          "frameMs": 27
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 28
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 34,
+          "frameMs": 21
+        },
+        {
+          "rate": 27,
+          "frameMs": 17.5
+        },
+        {
+          "rate": 46,
+          "frameMs": 27
+        },
+        {
+          "rate": 28,
+          "frameMs": 18
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 26
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 34,
+          "frameMs": 21
+        },
+        {
+          "rate": 27,
+          "frameMs": 17.5
+        },
+        {
+          "rate": 46,
+          "frameMs": 27
+        },
+        {
+          "rate": 28,
+          "frameMs": 18
+        },
+        {
+          "rate": 26,
+          "frameMs": 17
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 44
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 34,
+          "frameMs": 21
+        },
+        {
+          "rate": 27,
+          "frameMs": 17.5
+        },
+        {
+          "rate": 46,
+          "frameMs": 27
+        },
+        {
+          "rate": 28,
+          "frameMs": 18
+        },
+        {
+          "rate": 26,
+          "frameMs": 17
+        },
+        {
+          "rate": 44,
+          "frameMs": 26
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "done",
+        "rate": 24
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 34
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 29
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 34
+        },
+        {
+          "rate": 29,
+          "frameMs": 18.5
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 26
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 34
+        },
+        {
+          "rate": 29,
+          "frameMs": 18.5
+        },
+        {
+          "rate": 26,
+          "frameMs": 17
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 44
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 34
+        },
+        {
+          "rate": 29,
+          "frameMs": 18.5
+        },
+        {
+          "rate": 26,
+          "frameMs": 17
+        },
+        {
+          "rate": 44,
+          "frameMs": 26
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 28
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 34
+        },
+        {
+          "rate": 29,
+          "frameMs": 18.5
+        },
+        {
+          "rate": 26,
+          "frameMs": 17
+        },
+        {
+          "rate": 44,
+          "frameMs": 26
+        },
+        {
+          "rate": 28,
+          "frameMs": 18
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "done",
+        "rate": 23
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 2
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 3
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 5
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 9
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 15
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 19
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 13
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 19
+        },
+        {
+          "rate": 13,
+          "frameMs": 17
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 22
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 19
+        },
+        {
+          "rate": 13,
+          "frameMs": 17
+        },
+        {
+          "rate": 22,
+          "frameMs": 26
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "done",
+        "rate": 12
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 9
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 15
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 19
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 13
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 19
+        },
+        {
+          "rate": 13,
+          "frameMs": 17
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 22
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 19
+        },
+        {
+          "rate": 13,
+          "frameMs": 17
+        },
+        {
+          "rate": 22,
+          "frameMs": 26
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 14
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 19
+        },
+        {
+          "rate": 13,
+          "frameMs": 17
+        },
+        {
+          "rate": 22,
+          "frameMs": 26
+        },
+        {
+          "rate": 14,
+          "frameMs": 18
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "done",
+        "rate": 12
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 24
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 14
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 24
+        },
+        {
+          "rate": 14,
+          "frameMs": 18
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 13
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 24
+        },
+        {
+          "rate": 14,
+          "frameMs": 18
+        },
+        {
+          "rate": 13,
+          "frameMs": 17
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 22
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 24
+        },
+        {
+          "rate": 14,
+          "frameMs": 18
+        },
+        {
+          "rate": 13,
+          "frameMs": 17
+        },
+        {
+          "rate": 22,
+          "frameMs": 26
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "done",
+        "rate": 12
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 64
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 24
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 64
+        },
+        {
+          "rate": 24,
+          "frameMs": 28
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 14
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 64
+        },
+        {
+          "rate": 24,
+          "frameMs": 28
+        },
+        {
+          "rate": 14,
+          "frameMs": 18
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 13
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 64
+        },
+        {
+          "rate": 24,
+          "frameMs": 28
+        },
+        {
+          "rate": 14,
+          "frameMs": 18
+        },
+        {
+          "rate": 13,
+          "frameMs": 17
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 22
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 64
+        },
+        {
+          "rate": 24,
+          "frameMs": 28
+        },
+        {
+          "rate": 14,
+          "frameMs": 18
+        },
+        {
+          "rate": 13,
+          "frameMs": 17
+        },
+        {
+          "rate": 22,
+          "frameMs": 26
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "done",
+        "rate": 12
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 2
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 3
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 5
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 9
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 22
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 7
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 22
+        },
+        {
+          "rate": 7,
+          "frameMs": 18
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 6
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 22
+        },
+        {
+          "rate": 7,
+          "frameMs": 18
+        },
+        {
+          "rate": 6,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 10
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 22
+        },
+        {
+          "rate": 7,
+          "frameMs": 18
+        },
+        {
+          "rate": 6,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 10,
+          "frameMs": 24
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "done",
+        "rate": 5
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 9
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 22
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 7
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 22
+        },
+        {
+          "rate": 7,
+          "frameMs": 18
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 6
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 22
+        },
+        {
+          "rate": 7,
+          "frameMs": 18
+        },
+        {
+          "rate": 6,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 10
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 22
+        },
+        {
+          "rate": 7,
+          "frameMs": 18
+        },
+        {
+          "rate": 6,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 10,
+          "frameMs": 24
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "done",
+        "rate": 5
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 44
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 8
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 44
+        },
+        {
+          "rate": 8,
+          "frameMs": 20
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 7
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 44
+        },
+        {
+          "rate": 8,
+          "frameMs": 20
+        },
+        {
+          "rate": 7,
+          "frameMs": 18
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 6
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 44
+        },
+        {
+          "rate": 8,
+          "frameMs": 20
+        },
+        {
+          "rate": 7,
+          "frameMs": 18
+        },
+        {
+          "rate": 6,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 10
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 44
+        },
+        {
+          "rate": 8,
+          "frameMs": 20
+        },
+        {
+          "rate": 7,
+          "frameMs": 18
+        },
+        {
+          "rate": 6,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 10,
+          "frameMs": 24
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "done",
+        "rate": 5
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 124
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 24
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 124
+        },
+        {
+          "rate": 24,
+          "frameMs": 52
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 10
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 124
+        },
+        {
+          "rate": 24,
+          "frameMs": 52
+        },
+        {
+          "rate": 10,
+          "frameMs": 24
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 7
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 124
+        },
+        {
+          "rate": 24,
+          "frameMs": 52
+        },
+        {
+          "rate": 10,
+          "frameMs": 24
+        },
+        {
+          "rate": 7,
+          "frameMs": 18
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 6
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 124
+        },
+        {
+          "rate": 24,
+          "frameMs": 52
+        },
+        {
+          "rate": 10,
+          "frameMs": 24
+        },
+        {
+          "rate": 7,
+          "frameMs": 18
+        },
+        {
+          "rate": 6,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "done",
+        "rate": 5
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 2
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 3
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 19
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "done",
+        "rate": 2
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 29
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 3
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 29
+        },
+        {
+          "rate": 3,
+          "frameMs": 19
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "done",
+        "rate": 1
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 104
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 8
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 104
+        },
+        {
+          "rate": 8,
+          "frameMs": 44
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 3
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 104
+        },
+        {
+          "rate": 8,
+          "frameMs": 44
+        },
+        {
+          "rate": 3,
+          "frameMs": 19
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "done",
+        "rate": 1
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 304
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 24
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 304
+        },
+        {
+          "rate": 24,
+          "frameMs": 124
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 10
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 304
+        },
+        {
+          "rate": 24,
+          "frameMs": 124
+        },
+        {
+          "rate": 10,
+          "frameMs": 54
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 4
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 304
+        },
+        {
+          "rate": 24,
+          "frameMs": 124
+        },
+        {
+          "rate": 10,
+          "frameMs": 54
+        },
+        {
+          "rate": 4,
+          "frameMs": 24
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 3
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 304
+        },
+        {
+          "rate": 24,
+          "frameMs": 124
+        },
+        {
+          "rate": 10,
+          "frameMs": 54
+        },
+        {
+          "rate": 4,
+          "frameMs": 24
+        },
+        {
+          "rate": 3,
+          "frameMs": 19
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "done",
+        "rate": 1
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "done",
+        "rate": 60
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 400
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 24
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 30
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "done",
+        "rate": 1
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 34,
+          "frameMs": 25
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "probe",
+        "rate": 23
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 4,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 6,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 7,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 8,
+          "frameMs": 30
+        }
+      ],
+      "lo": 1,
+      "hi": 60,
+      "expected": {
+        "kind": "done",
+        "rate": 6
+      }
+    },
+    {
+      "history": [],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 61
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 2
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 3
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 5
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 9
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 15
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 26
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 44
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 44,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "done",
+        "rate": 40
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 9
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 15
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 26
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 44
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 44,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 75
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 44,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 75,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 120
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 44,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 75,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 120,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "done",
+        "rate": 120
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 34
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 34,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 58
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 34,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 58,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 99
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 34,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 58,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 99,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 120
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 34,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 58,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 99,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 120,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "done",
+        "rate": 120
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 102
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 102,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 120
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 102,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 120,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "done",
+        "rate": 120
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 120,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "done",
+        "rate": 120
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 2
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 3
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 5
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 9
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 15
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 26
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 44
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 44,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "done",
+        "rate": 40
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 9
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 15
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 26
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 44
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 44,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 75
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 44,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 75,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 120
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 44,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 75,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 120,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "done",
+        "rate": 120
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 34
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 34,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 58
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 34,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 58,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 99
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 34,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 58,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 99,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 120
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 34,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 58,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 99,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 120,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "done",
+        "rate": 120
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 102
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 102,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 120
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 102,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 120,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "done",
+        "rate": 120
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 120,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "done",
+        "rate": 120
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 2
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 3
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 5
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 9
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 15
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 26
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 44
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 44,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "done",
+        "rate": 40
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 9
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 15
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 26
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 44
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 44,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 75
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 44,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 75,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 120
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 44,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 75,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 120,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "done",
+        "rate": 120
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 34
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 34,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 58
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 34,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 58,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 99
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 34,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 58,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 99,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 120
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 34,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 58,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 99,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 120,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "done",
+        "rate": 120
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 102
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 102,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 120
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 102,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 120,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "done",
+        "rate": 120
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 120,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "done",
+        "rate": 120
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 2
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 3
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 5
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 9
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 15
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 26
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 44
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 44,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "done",
+        "rate": 40
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 9
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 15
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 26
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 44
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 44,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 75
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 44,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 75,
+          "frameMs": 22.75
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 55
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 44,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 75,
+          "frameMs": 22.75
+        },
+        {
+          "rate": 55,
+          "frameMs": 17.75
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 52
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 44,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 75,
+          "frameMs": 22.75
+        },
+        {
+          "rate": 55,
+          "frameMs": 17.75
+        },
+        {
+          "rate": 52,
+          "frameMs": 17
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "done",
+        "rate": 47
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 34
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 34,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 58
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 34,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 58,
+          "frameMs": 18.5
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 52
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 34,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 58,
+          "frameMs": 18.5
+        },
+        {
+          "rate": 52,
+          "frameMs": 17
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 88
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 34,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 58,
+          "frameMs": 18.5
+        },
+        {
+          "rate": 52,
+          "frameMs": 17
+        },
+        {
+          "rate": 88,
+          "frameMs": 26
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 57
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 34,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 58,
+          "frameMs": 18.5
+        },
+        {
+          "rate": 52,
+          "frameMs": 17
+        },
+        {
+          "rate": 88,
+          "frameMs": 26
+        },
+        {
+          "rate": 57,
+          "frameMs": 18.25
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "done",
+        "rate": 47
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 19
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 53
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 19
+        },
+        {
+          "rate": 53,
+          "frameMs": 17.25
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 90
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 19
+        },
+        {
+          "rate": 53,
+          "frameMs": 17.25
+        },
+        {
+          "rate": 90,
+          "frameMs": 26.5
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 57
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 19
+        },
+        {
+          "rate": 53,
+          "frameMs": 17.25
+        },
+        {
+          "rate": 90,
+          "frameMs": 26.5
+        },
+        {
+          "rate": 57,
+          "frameMs": 18.25
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 52
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 19
+        },
+        {
+          "rate": 53,
+          "frameMs": 17.25
+        },
+        {
+          "rate": 90,
+          "frameMs": 26.5
+        },
+        {
+          "rate": 57,
+          "frameMs": 18.25
+        },
+        {
+          "rate": 52,
+          "frameMs": 17
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 88
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 19
+        },
+        {
+          "rate": 53,
+          "frameMs": 17.25
+        },
+        {
+          "rate": 90,
+          "frameMs": 26.5
+        },
+        {
+          "rate": 57,
+          "frameMs": 18.25
+        },
+        {
+          "rate": 52,
+          "frameMs": 17
+        },
+        {
+          "rate": 88,
+          "frameMs": 26
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "done",
+        "rate": 48
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 120,
+          "frameMs": 34
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 59
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 120,
+          "frameMs": 34
+        },
+        {
+          "rate": 59,
+          "frameMs": 18.75
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 53
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 120,
+          "frameMs": 34
+        },
+        {
+          "rate": 59,
+          "frameMs": 18.75
+        },
+        {
+          "rate": 53,
+          "frameMs": 17.25
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 90
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 120,
+          "frameMs": 34
+        },
+        {
+          "rate": 59,
+          "frameMs": 18.75
+        },
+        {
+          "rate": 53,
+          "frameMs": 17.25
+        },
+        {
+          "rate": 90,
+          "frameMs": 26.5
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 57
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 120,
+          "frameMs": 34
+        },
+        {
+          "rate": 59,
+          "frameMs": 18.75
+        },
+        {
+          "rate": 53,
+          "frameMs": 17.25
+        },
+        {
+          "rate": 90,
+          "frameMs": 26.5
+        },
+        {
+          "rate": 57,
+          "frameMs": 18.25
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 52
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 120,
+          "frameMs": 34
+        },
+        {
+          "rate": 59,
+          "frameMs": 18.75
+        },
+        {
+          "rate": 53,
+          "frameMs": 17.25
+        },
+        {
+          "rate": 90,
+          "frameMs": 26.5
+        },
+        {
+          "rate": 57,
+          "frameMs": 18.25
+        },
+        {
+          "rate": 52,
+          "frameMs": 17
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 88
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 120,
+          "frameMs": 34
+        },
+        {
+          "rate": 59,
+          "frameMs": 18.75
+        },
+        {
+          "rate": 53,
+          "frameMs": 17.25
+        },
+        {
+          "rate": 90,
+          "frameMs": 26.5
+        },
+        {
+          "rate": 57,
+          "frameMs": 18.25
+        },
+        {
+          "rate": 52,
+          "frameMs": 17
+        },
+        {
+          "rate": 88,
+          "frameMs": 26
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "done",
+        "rate": 48
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 2
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 3
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 5
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 9
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 15
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 26
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 17
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 44
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 17
+        },
+        {
+          "rate": 44,
+          "frameMs": 26
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "done",
+        "rate": 23
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 9
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 15
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 26
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 17
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 44
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 17
+        },
+        {
+          "rate": 44,
+          "frameMs": 26
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 28
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 26,
+          "frameMs": 17
+        },
+        {
+          "rate": 44,
+          "frameMs": 26
+        },
+        {
+          "rate": 28,
+          "frameMs": 18
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "done",
+        "rate": 23
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 34
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 34,
+          "frameMs": 21
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 27
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 34,
+          "frameMs": 21
+        },
+        {
+          "rate": 27,
+          "frameMs": 17.5
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 46
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 34,
+          "frameMs": 21
+        },
+        {
+          "rate": 27,
+          "frameMs": 17.5
+        },
+        {
+          "rate": 46,
+          "frameMs": 27
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 28
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 34,
+          "frameMs": 21
+        },
+        {
+          "rate": 27,
+          "frameMs": 17.5
+        },
+        {
+          "rate": 46,
+          "frameMs": 27
+        },
+        {
+          "rate": 28,
+          "frameMs": 18
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 26
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 34,
+          "frameMs": 21
+        },
+        {
+          "rate": 27,
+          "frameMs": 17.5
+        },
+        {
+          "rate": 46,
+          "frameMs": 27
+        },
+        {
+          "rate": 28,
+          "frameMs": 18
+        },
+        {
+          "rate": 26,
+          "frameMs": 17
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 44
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 34,
+          "frameMs": 21
+        },
+        {
+          "rate": 27,
+          "frameMs": 17.5
+        },
+        {
+          "rate": 46,
+          "frameMs": 27
+        },
+        {
+          "rate": 28,
+          "frameMs": 18
+        },
+        {
+          "rate": 26,
+          "frameMs": 17
+        },
+        {
+          "rate": 44,
+          "frameMs": 26
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "done",
+        "rate": 24
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 34
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 29
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 34
+        },
+        {
+          "rate": 29,
+          "frameMs": 18.5
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 26
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 34
+        },
+        {
+          "rate": 29,
+          "frameMs": 18.5
+        },
+        {
+          "rate": 26,
+          "frameMs": 17
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 44
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 34
+        },
+        {
+          "rate": 29,
+          "frameMs": 18.5
+        },
+        {
+          "rate": 26,
+          "frameMs": 17
+        },
+        {
+          "rate": 44,
+          "frameMs": 26
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 28
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 34
+        },
+        {
+          "rate": 29,
+          "frameMs": 18.5
+        },
+        {
+          "rate": 26,
+          "frameMs": 17
+        },
+        {
+          "rate": 44,
+          "frameMs": 26
+        },
+        {
+          "rate": 28,
+          "frameMs": 18
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "done",
+        "rate": 23
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 120,
+          "frameMs": 64
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 48
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 120,
+          "frameMs": 64
+        },
+        {
+          "rate": 48,
+          "frameMs": 28
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 29
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 120,
+          "frameMs": 64
+        },
+        {
+          "rate": 48,
+          "frameMs": 28
+        },
+        {
+          "rate": 29,
+          "frameMs": 18.5
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 26
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 120,
+          "frameMs": 64
+        },
+        {
+          "rate": 48,
+          "frameMs": 28
+        },
+        {
+          "rate": 29,
+          "frameMs": 18.5
+        },
+        {
+          "rate": 26,
+          "frameMs": 17
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 44
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 120,
+          "frameMs": 64
+        },
+        {
+          "rate": 48,
+          "frameMs": 28
+        },
+        {
+          "rate": 29,
+          "frameMs": 18.5
+        },
+        {
+          "rate": 26,
+          "frameMs": 17
+        },
+        {
+          "rate": 44,
+          "frameMs": 26
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 28
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 120,
+          "frameMs": 64
+        },
+        {
+          "rate": 48,
+          "frameMs": 28
+        },
+        {
+          "rate": 29,
+          "frameMs": 18.5
+        },
+        {
+          "rate": 26,
+          "frameMs": 17
+        },
+        {
+          "rate": 44,
+          "frameMs": 26
+        },
+        {
+          "rate": 28,
+          "frameMs": 18
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "done",
+        "rate": 23
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 2
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 3
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 5
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 9
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 15
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 19
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 13
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 19
+        },
+        {
+          "rate": 13,
+          "frameMs": 17
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 22
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 19
+        },
+        {
+          "rate": 13,
+          "frameMs": 17
+        },
+        {
+          "rate": 22,
+          "frameMs": 26
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "done",
+        "rate": 12
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 9
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 15
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 19
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 13
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 19
+        },
+        {
+          "rate": 13,
+          "frameMs": 17
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 22
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 19
+        },
+        {
+          "rate": 13,
+          "frameMs": 17
+        },
+        {
+          "rate": 22,
+          "frameMs": 26
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 14
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 15,
+          "frameMs": 19
+        },
+        {
+          "rate": 13,
+          "frameMs": 17
+        },
+        {
+          "rate": 22,
+          "frameMs": 26
+        },
+        {
+          "rate": 14,
+          "frameMs": 18
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "done",
+        "rate": 12
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 24
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 14
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 24
+        },
+        {
+          "rate": 14,
+          "frameMs": 18
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 13
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 24
+        },
+        {
+          "rate": 14,
+          "frameMs": 18
+        },
+        {
+          "rate": 13,
+          "frameMs": 17
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 22
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 24
+        },
+        {
+          "rate": 14,
+          "frameMs": 18
+        },
+        {
+          "rate": 13,
+          "frameMs": 17
+        },
+        {
+          "rate": 22,
+          "frameMs": 26
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "done",
+        "rate": 12
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 64
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 24
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 64
+        },
+        {
+          "rate": 24,
+          "frameMs": 28
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 14
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 64
+        },
+        {
+          "rate": 24,
+          "frameMs": 28
+        },
+        {
+          "rate": 14,
+          "frameMs": 18
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 13
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 64
+        },
+        {
+          "rate": 24,
+          "frameMs": 28
+        },
+        {
+          "rate": 14,
+          "frameMs": 18
+        },
+        {
+          "rate": 13,
+          "frameMs": 17
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 22
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 64
+        },
+        {
+          "rate": 24,
+          "frameMs": 28
+        },
+        {
+          "rate": 14,
+          "frameMs": 18
+        },
+        {
+          "rate": 13,
+          "frameMs": 17
+        },
+        {
+          "rate": 22,
+          "frameMs": 26
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "done",
+        "rate": 12
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 120,
+          "frameMs": 124
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 48
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 120,
+          "frameMs": 124
+        },
+        {
+          "rate": 48,
+          "frameMs": 52
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 19
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 120,
+          "frameMs": 124
+        },
+        {
+          "rate": 48,
+          "frameMs": 52
+        },
+        {
+          "rate": 19,
+          "frameMs": 23
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 14
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 120,
+          "frameMs": 124
+        },
+        {
+          "rate": 48,
+          "frameMs": 52
+        },
+        {
+          "rate": 19,
+          "frameMs": 23
+        },
+        {
+          "rate": 14,
+          "frameMs": 18
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 13
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 120,
+          "frameMs": 124
+        },
+        {
+          "rate": 48,
+          "frameMs": 52
+        },
+        {
+          "rate": 19,
+          "frameMs": 23
+        },
+        {
+          "rate": 14,
+          "frameMs": 18
+        },
+        {
+          "rate": 13,
+          "frameMs": 17
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 22
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 120,
+          "frameMs": 124
+        },
+        {
+          "rate": 48,
+          "frameMs": 52
+        },
+        {
+          "rate": 19,
+          "frameMs": 23
+        },
+        {
+          "rate": 14,
+          "frameMs": 18
+        },
+        {
+          "rate": 13,
+          "frameMs": 17
+        },
+        {
+          "rate": 22,
+          "frameMs": 26
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "done",
+        "rate": 12
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 2
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 3
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 5
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 9
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 22
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 7
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 22
+        },
+        {
+          "rate": 7,
+          "frameMs": 18
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 6
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 22
+        },
+        {
+          "rate": 7,
+          "frameMs": 18
+        },
+        {
+          "rate": 6,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 10
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 22
+        },
+        {
+          "rate": 7,
+          "frameMs": 18
+        },
+        {
+          "rate": 6,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 10,
+          "frameMs": 24
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "done",
+        "rate": 5
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 9
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 22
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 7
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 22
+        },
+        {
+          "rate": 7,
+          "frameMs": 18
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 6
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 22
+        },
+        {
+          "rate": 7,
+          "frameMs": 18
+        },
+        {
+          "rate": 6,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 10
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 9,
+          "frameMs": 22
+        },
+        {
+          "rate": 7,
+          "frameMs": 18
+        },
+        {
+          "rate": 6,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 10,
+          "frameMs": 24
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "done",
+        "rate": 5
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 44
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 8
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 44
+        },
+        {
+          "rate": 8,
+          "frameMs": 20
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 7
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 44
+        },
+        {
+          "rate": 8,
+          "frameMs": 20
+        },
+        {
+          "rate": 7,
+          "frameMs": 18
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 6
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 44
+        },
+        {
+          "rate": 8,
+          "frameMs": 20
+        },
+        {
+          "rate": 7,
+          "frameMs": 18
+        },
+        {
+          "rate": 6,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 10
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 44
+        },
+        {
+          "rate": 8,
+          "frameMs": 20
+        },
+        {
+          "rate": 7,
+          "frameMs": 18
+        },
+        {
+          "rate": 6,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 10,
+          "frameMs": 24
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "done",
+        "rate": 5
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 124
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 24
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 124
+        },
+        {
+          "rate": 24,
+          "frameMs": 52
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 10
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 124
+        },
+        {
+          "rate": 24,
+          "frameMs": 52
+        },
+        {
+          "rate": 10,
+          "frameMs": 24
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 7
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 124
+        },
+        {
+          "rate": 24,
+          "frameMs": 52
+        },
+        {
+          "rate": 10,
+          "frameMs": 24
+        },
+        {
+          "rate": 7,
+          "frameMs": 18
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 6
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 124
+        },
+        {
+          "rate": 24,
+          "frameMs": 52
+        },
+        {
+          "rate": 10,
+          "frameMs": 24
+        },
+        {
+          "rate": 7,
+          "frameMs": 18
+        },
+        {
+          "rate": 6,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "done",
+        "rate": 5
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 120,
+          "frameMs": 244
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 48
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 120,
+          "frameMs": 244
+        },
+        {
+          "rate": 48,
+          "frameMs": 100
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 19
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 120,
+          "frameMs": 244
+        },
+        {
+          "rate": 48,
+          "frameMs": 100
+        },
+        {
+          "rate": 19,
+          "frameMs": 42
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 8
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 120,
+          "frameMs": 244
+        },
+        {
+          "rate": 48,
+          "frameMs": 100
+        },
+        {
+          "rate": 19,
+          "frameMs": 42
+        },
+        {
+          "rate": 8,
+          "frameMs": 20
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 7
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 120,
+          "frameMs": 244
+        },
+        {
+          "rate": 48,
+          "frameMs": 100
+        },
+        {
+          "rate": 19,
+          "frameMs": 42
+        },
+        {
+          "rate": 8,
+          "frameMs": 20
+        },
+        {
+          "rate": 7,
+          "frameMs": 18
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 6
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 120,
+          "frameMs": 244
+        },
+        {
+          "rate": 48,
+          "frameMs": 100
+        },
+        {
+          "rate": 19,
+          "frameMs": 42
+        },
+        {
+          "rate": 8,
+          "frameMs": 20
+        },
+        {
+          "rate": 7,
+          "frameMs": 18
+        },
+        {
+          "rate": 6,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 10
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 120,
+          "frameMs": 244
+        },
+        {
+          "rate": 48,
+          "frameMs": 100
+        },
+        {
+          "rate": 19,
+          "frameMs": 42
+        },
+        {
+          "rate": 8,
+          "frameMs": 20
+        },
+        {
+          "rate": 7,
+          "frameMs": 18
+        },
+        {
+          "rate": 6,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 10,
+          "frameMs": 24
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "done",
+        "rate": 5
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 2
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 3
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 19
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "done",
+        "rate": 2
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 29
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 3
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 5,
+          "frameMs": 29
+        },
+        {
+          "rate": 3,
+          "frameMs": 19
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "done",
+        "rate": 1
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 104
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 8
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 104
+        },
+        {
+          "rate": 8,
+          "frameMs": 44
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 3
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 104
+        },
+        {
+          "rate": 8,
+          "frameMs": 44
+        },
+        {
+          "rate": 3,
+          "frameMs": 19
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "done",
+        "rate": 1
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 304
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 24
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 304
+        },
+        {
+          "rate": 24,
+          "frameMs": 124
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 10
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 304
+        },
+        {
+          "rate": 24,
+          "frameMs": 124
+        },
+        {
+          "rate": 10,
+          "frameMs": 54
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 4
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 304
+        },
+        {
+          "rate": 24,
+          "frameMs": 124
+        },
+        {
+          "rate": 10,
+          "frameMs": 54
+        },
+        {
+          "rate": 4,
+          "frameMs": 24
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 3
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 60,
+          "frameMs": 304
+        },
+        {
+          "rate": 24,
+          "frameMs": 124
+        },
+        {
+          "rate": 10,
+          "frameMs": 54
+        },
+        {
+          "rate": 4,
+          "frameMs": 24
+        },
+        {
+          "rate": 3,
+          "frameMs": 19
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "done",
+        "rate": 1
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 120,
+          "frameMs": 604
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 48
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 120,
+          "frameMs": 604
+        },
+        {
+          "rate": 48,
+          "frameMs": 244
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 19
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 120,
+          "frameMs": 604
+        },
+        {
+          "rate": 48,
+          "frameMs": 244
+        },
+        {
+          "rate": 19,
+          "frameMs": 99
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 8
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 120,
+          "frameMs": 604
+        },
+        {
+          "rate": 48,
+          "frameMs": 244
+        },
+        {
+          "rate": 19,
+          "frameMs": 99
+        },
+        {
+          "rate": 8,
+          "frameMs": 44
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 3
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 120,
+          "frameMs": 604
+        },
+        {
+          "rate": 48,
+          "frameMs": 244
+        },
+        {
+          "rate": 19,
+          "frameMs": 99
+        },
+        {
+          "rate": 8,
+          "frameMs": 44
+        },
+        {
+          "rate": 3,
+          "frameMs": 19
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "done",
+        "rate": 1
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 120,
+          "frameMs": 16.7
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "done",
+        "rate": 120
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 120,
+          "frameMs": 400
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 48
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 30
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "done",
+        "rate": 1
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 20,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 34,
+          "frameMs": 25
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "probe",
+        "rate": 23
+      }
+    },
+    {
+      "history": [
+        {
+          "rate": 1,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 2,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 3,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 4,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 5,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 6,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 7,
+          "frameMs": 16.7
+        },
+        {
+          "rate": 8,
+          "frameMs": 30
+        }
+      ],
+      "lo": 1,
+      "hi": 120,
+      "expected": {
+        "kind": "done",
+        "rate": 6
+      }
+    }
+  ]
+}

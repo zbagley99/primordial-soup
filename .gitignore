@@ -1,0 +1,34 @@
+/target/
+/dist/
+/.dist-stage.*/
+/.aws
+/.env
+/.env.*
+/node_modules/
+/artifacts/
+/exports/
+/local-data/
+*.log
+TEST-LOG.md
+
+# Repository-local tools, worktrees and caches.
+/.claude/
+/.codex/
+/.agents/
+/.worktrees/
+/.cache/
+__pycache__/
+*.py[cod]
+.DS_Store
+
+# Supplied reference material stays outside version control.
+/reference/
+/references/
+/reference-material/
+/docs/assets/*reference*
+/*.zip
+/*.tar
+/*.tar.gz
+/*.tgz
+/*.7z
+/*.pdf

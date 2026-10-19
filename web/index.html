@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#18181b">
+  <meta name="description" content="Explore neural particle dynamics and emergent complexity. Rust, WebAssembly and WebGPU; all computation stays on your device.">
+  <title>Primordial Soup</title>
+  <link rel="icon" href="data:,">
+  <style>
+    html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;color:#eee;font:14px/1.5 system-ui,sans-serif}
+    #soup{display:block;width:100%;height:100%;touch-action:none;outline:none}
+    #loading,#error{position:fixed;inset:0;display:grid;place-content:center;text-align:center;padding:2rem;background:#18181b;z-index:20}
+    #error[hidden],#loading[hidden]{display:none}
+    h1{font-size:1.5rem;font-weight:500;margin:0 0 .75rem}p{max-width:38rem;margin:.5rem auto;color:#b8b8bd}
+    a{color:#97baff}button{border:1px solid #494950;background:#27272c;color:#eee;padding:.6rem 1rem;border-radius:5px;cursor:pointer}
+    #status{position:fixed;left:0;bottom:0;font:10px monospace;pointer-events:none;color:#ddd;background:#111;display:none}
+    #memory{position:fixed;right:0;bottom:0;font:10px monospace;pointer-events:none;color:#ddd;background:#111;display:none}
+    body.debug:not([data-panels-hidden="true"]) #status,body.debug:not([data-panels-hidden="true"]) #memory{display:block}
+  </style>
+</head>
+<body>
+  <canvas id="soup" aria-label="Primordial Soup simulation. Press question mark for controls."></canvas>
+  <div id="loading" role="status"><h1>Primordial Soup</h1><p>Preparing your GPU…</p><p>Fluoddity dynamics by Jesse Gelders · Rust / WebGPU</p></div>
+  <div id="error" role="alert" hidden><h1>WebGPU unavailable</h1><p id="detail"></p><p>Use a current browser with WebGPU and hardware acceleration enabled.</p><button id="reload">Reload</button></div>
+  <output id="status" aria-live="off">Starting</output>
+  <output id="memory" aria-live="off" title="Committed WebAssembly memory and JavaScript heap. These are not total tab RAM or GPU memory."></output>
+  <script type="module" src="./boot.js"></script>
+</body>
+</html>
