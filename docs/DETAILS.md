@@ -176,9 +176,8 @@ The implementation behind this explanation is in:
 - [Trail diffusion and fading](../shaders/canvas.wgsl)
 - [Adoption, rerolling, and editor actions](../src/app.rs)
 
-The simulation is a Rust + WGPU port of Jesse Gelders's
-[Fluoddity](https://fluoddity.com/). See [REFERENCE.md](REFERENCE.md) for
-provenance and [the README](../README.md) for running the app and its controls.
+See [REFERENCE.md](REFERENCE.md) for provenance and [the README](../README.md)
+for running the app and its controls.
 
 ### Reliability and saved rules
 

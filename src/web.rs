@@ -224,7 +224,7 @@ pub fn export_archive(notices: Notices, ctx: eframe::egui::Context) {
                 serde_json::from_str(&value.as_string().unwrap_or_default())?;
             let document = crate::archive::document(&events)?;
             download(
-                "Fluoddity-State-Archive.json",
+                "Primordial-Soup-State-Archive.json",
                 document.as_bytes(),
                 "application/json",
             )?;

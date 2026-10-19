@@ -1,18 +1,20 @@
 # Primordial Soup
 
-A Rust + WGPU port of [Fluoddity](https://fluoddity.com/), Jesse Gelders's
-MIT-licensed neural particle simulation. Particles read a shared vector trail
-field through two sensors. Select Fourier (the original 80-coefficient rule),
-MLP (76 parameters), or GRU (128 parameters with per-particle memory) to determine
-motion and color. Cohort mutation and selection expose different collective
-behaviors. The simulation and rendering run on the local GPU.
+![Primordial Soup mid-simulation in the dark Cells style](docs/images/header.webp)
+
+A neural particle simulation in Rust and WGPU, based on Jesse Gelders's
+MIT-licensed [Fluoddity](https://fluoddity.com/).
+
+Particles read a shared vector trail field through two sensors. Select Fourier
+(the original 80-coefficient rule), MLP (76 parameters), or GRU (128 parameters
+with per-particle memory) to determine motion and color. Cohort mutation and
+selection expose different collective behaviors. The simulation and rendering
+run on the local GPU.
 
 The original WGSL model, initial conditions, display pipeline, 131 shipped
 presets, v8/v9 project files and share codecs are retained. The editor uses egui
-on native and web. Its layout is adapted to that toolkit; it is not a pixel copy
-of the reference website. Reference provenance and scope are in
-[docs/REFERENCE.md](docs/REFERENCE.md), and executed evidence is in
-[docs/RESULTS.md](docs/RESULTS.md).
+on native and web. Provenance is in [docs/REFERENCE.md](docs/REFERENCE.md), and
+executed evidence is in [docs/RESULTS.md](docs/RESULTS.md).
 
 ## Run on Linux / NVIDIA
 
@@ -144,7 +146,7 @@ falls back to a PNG download. Camera permission is requested only on Start.
 Useful launch options are `?preset=Segments`, `?world=0.5&steps=5`, `?paused`,
 `?camera=trail`, `?debug`, and `?nocalibrate`. A copied share link carries the
 project in its fragment and can suggest editor settings for the recipient to
-accept. Native links for legacy Fourier projects are compatible with the original Fluoddity site.
+accept. Native links for legacy Fourier projects keep the original link format.
 `?ticks=300&fps=15&nocalibrate` selects fixed ticking with a slower display.
 
 File → Load contains expandable **Core (22)**, **Custom**, and **Archive (109)**
@@ -213,7 +215,7 @@ equivalent behavior across architectures. GPU samples are asynchronous and may
 precede the final batch; completed wall time includes scheduling and suspension.
 
 Extended projects use v10 JSON and app-specific share payloads; legacy Fourier
-projects retain their original v9 format and Fluoddity links. An explicitly labeled
+projects retain their original v9 format and links. An explicitly labeled
 Fourier v9 export discards other modes. Native extended links default to
 `http://localhost:8080/`; set `PRIMORDIAL_SOUP_URL` to the hosted app address when
 sharing with another machine. Large projects may exceed QR capacity; use JSON.
@@ -267,7 +269,12 @@ not require NVIDIA. Native NVENC video checks still require NVIDIA.
 and probes a one-second native NVENC video. `--capture-benchmark` compares the
 previous and current PNG readback paths with alternating pairs and byte-equal
 output. `--output FILE` saves measurements;
-`--shot FILE.png` saves a GPU-rendered image. Validation runs are serial and
+`--shot FILE.png` saves a GPU-rendered image. With `--benchmark`, `--preset NAME`
+selects a shipped preset instead of the default project. The header image was
+rendered with `--benchmark --style cells --preset Tangle --world 0.5 --steps 5
+--blur-samples 1 --setup-ticks 3000 --warmup 0 --frames 1 --width 1602
+--height 1602 --no-profile --shot FILE.png`, then center-cropped to 1600 × 900,
+which leaves out the one-pixel world outline. Validation runs are serial and
 bounded. See [docs/VALIDATION.md](docs/VALIDATION.md) for the full procedure and
 the distinction between GPU timestamps, CPU encoding and displayed frame rate.
 `--numerical` runs short independent analytical comparisons, finite-value checks

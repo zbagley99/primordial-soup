@@ -3,7 +3,7 @@ name = "primordial-soup"
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.95"
-description = "Fluoddity's neural particle dynamics, in Rust and WGPU"
+description = "A neural particle simulation in Rust and WGPU"
 license = "MIT"
 default-run = "primordial-soup"
 

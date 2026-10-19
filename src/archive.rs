@@ -200,7 +200,7 @@ impl Writer {
                             let document = document(&read()?)?;
                             std::fs::create_dir_all("exports")?;
                             let output = format!(
-                                "exports/Fluoddity-State-Archive-{}.json",
+                                "exports/Primordial-Soup-State-Archive-{}.json",
                                 epoch_ms() as u64
                             );
                             std::fs::write(&output, document)?;

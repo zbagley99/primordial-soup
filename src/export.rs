@@ -276,7 +276,7 @@ pub fn decode_image_file(path: &std::path::Path) -> Result<Project> {
             return Ok(project);
         }
     }
-    anyhow::bail!("image QR code does not contain a Fluoddity project")
+    anyhow::bail!("image QR code does not contain a project")
 }
 
 fn crc32(bytes: &[u8]) -> u32 {

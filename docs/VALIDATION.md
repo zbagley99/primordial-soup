@@ -142,9 +142,10 @@ boundaries affect diagnostic runs, so compare matching instrumentation. With
 it. Native RTX/Vulkan measurements cover encoded GPU work, excluding browser
 presentation and input-to-display latency. Validate browser behavior separately.
 
-The benchmark disables automatic calibration, uses the default project and
-performs 120 setup ticks for Cells. It selects the mean position of the densest
-64 × 64 world bin, then holds that camera fixed. The report records the project,
+The benchmark disables automatic calibration, uses the default project (or the
+shipped preset named by `--preset`) and performs 120 setup ticks for Cells. It
+selects the mean position of the densest 64 × 64 world bin, then holds that
+camera fixed. The report records the project,
 preferences, camera, actual working/padded/framebuffer sizes, requested/actual
 temporal samples, planner/tile state and logical memory allocations. Include
 the additional Fast Cells allocation in comparisons; driver heap overhead is

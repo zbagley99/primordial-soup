@@ -698,7 +698,16 @@ mod native {
             .map(|_| value("--label", ""))
             .transpose()?;
         let s = sizing_for(world, 1.0)?;
-        let p = Project::default();
+        let p = if args.iter().any(|v| v == "--preset") {
+            let name = value("--preset", "")?;
+            primordial_soup::config::presets()
+                .into_iter()
+                .find(|(preset, _)| *preset == name)
+                .with_context(|| format!("Unknown preset {name}"))?
+                .1
+        } else {
+            Project::default()
+        };
         let mut e = Engine::new(d, q, s, &p, workgroup)?;
         if args.iter().any(|v| v == "--active-empty-field") {
             let _ = e.field_texture(q);

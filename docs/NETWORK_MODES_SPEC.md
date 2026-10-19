@@ -256,11 +256,11 @@ configuration agree with the one being simulated.
 - Read v8/v9 projects as Fourier, preserving existing migration behavior.
 - Use a new project format, proposed **v10**, whenever network banks or comparison
   metadata exist. Preserve name/notes and relevant mode state explicitly.
-- Keep legacy v9 output and original Fluoddity links only for projects with no
+- Keep legacy v9 output and original-format links only for projects with no
   extra state to lose. Provide an explicitly labeled active-Fourier-only export
   if users need to discard extra banks for compatibility; never do so silently.
 - Add a distinct app-specific share envelope for v10, targeting this app rather
-  than Fluoddity. JSON, links, QR import/export, custom saves, browser/native
+  than the original site. JSON, links, QR import/export, custom saves, browser/native
   autosave, ZIP backups, and checkpoints must preserve all banks. Enforce bounded
   decoding before allocations. If a QR payload is too large, explain the limit
   and offer JSON; never drop inactive modes to make it fit.

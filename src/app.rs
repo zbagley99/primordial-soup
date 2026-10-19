@@ -2407,7 +2407,7 @@ impl SoupApp {
                                     self.notice = crate::export::export_zip(&self.state.saves)
                                         .and_then(|bytes| {
                                             download(
-                                                "Fluoddity-Custom-Saves.zip",
+                                                "Primordial-Soup-Custom-Saves.zip",
                                                 &bytes,
                                                 "application/zip",
                                             )
@@ -3075,7 +3075,7 @@ impl SoupApp {
             let mut open = true;
             let mut import = false;
             egui::Window::new("Import / Export").open(&mut open).default_width(630.0).show(ctx,|ui| {
-                ui.label("Paste a Fluoddity JSON preset, share link or custom-save backup. Drop a JSON, ZIP or QR image onto the canvas to import a file.");
+                ui.label("Paste a JSON preset, share link or custom-save backup. Drop a JSON, ZIP or QR image onto the canvas to import a file.");
                 ui.add(egui::TextEdit::multiline(&mut self.transfer_text).desired_rows(14).desired_width(f32::INFINITY).code_editor());
                 ui.horizontal(|ui| { if ui.button("Import").clicked() { import=true; }
                     if ui.button("Copy").clicked() { ctx.copy_text(self.transfer_text.clone()); }
