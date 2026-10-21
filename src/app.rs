@@ -420,6 +420,19 @@ struct QueuedPick {
     intent: PickIntent,
 }
 
+fn report_gpu_error(errors: &Mutex<Option<String>>, detail: String) {
+    let mut first = errors.lock().unwrap();
+    if first.is_some() {
+        return;
+    }
+    *first = Some(detail.clone());
+    drop(first);
+    #[cfg(target_arch = "wasm32")]
+    web_sys::console::error_1(&detail.into());
+    #[cfg(not(target_arch = "wasm32"))]
+    eprintln!("{detail}");
+}
+
 pub fn wgpu_options() -> egui_wgpu::WgpuConfiguration {
     let mut create = egui_wgpu::WgpuSetupCreateNew::without_display_handle();
     create.instance_descriptor.backends = if cfg!(target_arch = "wasm32") {
@@ -480,16 +493,17 @@ impl SoupApp {
         let ctx = cc.egui_ctx.clone();
         rs.device
             .on_uncaptured_error(Arc::new(move |e: wgpu::Error| {
-                *errors.lock().unwrap() = Some(e.to_string());
+                report_gpu_error(&errors, e.to_string());
                 ctx.request_repaint();
             }));
         let errors = error.clone();
         let ctx = cc.egui_ctx.clone();
         rs.device.set_device_lost_callback(move |reason, detail| {
             if reason != wgpu::DeviceLostReason::Destroyed {
-                *errors.lock().unwrap() = Some(format!(
-                    "GPU device lost: {detail}. Reload to create a new device."
-                ));
+                report_gpu_error(
+                    &errors,
+                    format!("GPU device lost: {detail}. Reload to create a new device."),
+                );
                 ctx.request_repaint();
             }
         });
@@ -908,7 +922,7 @@ impl SoupApp {
         }
         #[cfg(not(target_arch = "wasm32"))]
         if let Err(e) = self.rs.device.poll(wgpu::PollType::Poll) {
-            *self.error.lock().unwrap() = Some(e.to_string());
+            report_gpu_error(&self.error, e.to_string());
         }
         if let Err(e) = self.resolve_pick(now) {
             self.notice = e.to_string();
@@ -4948,7 +4962,7 @@ impl eframe::App for SoupApp {
             }
             self.recorder = None;
             egui::CentralPanel::default().show(root, |ui| {
-                ui.heading("GPU unavailable");
+                ui.heading("Graphics error");
                 ui.label(detail);
             });
             return;
@@ -5118,7 +5132,7 @@ impl eframe::App for SoupApp {
         if ctx.current_pass_index() == 0 {
             if let Some((rect, response)) = canvas.filter(|_| self.visible) {
                 if let Err(e) = self.draw_frame(ctx, rect, response, now, frame_start) {
-                    *self.error.lock().unwrap() = Some(e.to_string());
+                    report_gpu_error(&self.error, e.to_string());
                 }
             } else {
                 self.capture_finish(ctx);
@@ -5449,6 +5463,23 @@ fn download(name: &str, bytes: &[u8], mime: &str) -> Result<String> {
         ));
         std::fs::write(&path, bytes)?;
         Ok(format!("Saved {}", path.display()))
+    }
+}
+
+#[cfg(test)]
+mod gpu_error_tests {
+    use super::*;
+
+    #[test]
+    fn first_gpu_failure_survives_encoder_cascade() {
+        let errors = Mutex::new(None);
+        report_gpu_error(&errors, "Shader compilation failed".into());
+        report_gpu_error(&errors, "encoder state is invalid".into());
+        report_gpu_error(&errors, "GPU device lost".into());
+        assert_eq!(
+            errors.lock().unwrap().as_deref(),
+            Some("Shader compilation failed")
+        );
     }
 }
 
