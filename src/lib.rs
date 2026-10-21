@@ -23,6 +23,7 @@ pub mod record;
 pub mod render;
 pub mod share;
 pub mod simulation;
+mod studio_ui;
 pub mod webcam;
 
 #[cfg(target_arch = "wasm32")]

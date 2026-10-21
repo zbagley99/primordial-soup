@@ -72,8 +72,10 @@ fn performance_label(ui: &Ui, id: &str, label: &str) -> egui::RichText {
             .ctx()
             .data_mut(|d| d.get_temp::<crate::performance::Band>(egui::Id::new("performance band")))
         {
-            let [r, g, b] = band.label_color();
-            return text.color(egui::Color32::from_rgb(r, g, b));
+            if band != crate::performance::Band::Green {
+                let [r, g, b] = band.label_color();
+                return text.color(egui::Color32::from_rgb(r, g, b));
+            }
         }
     }
     text
@@ -125,54 +127,90 @@ pub(crate) fn slider(
     help: &str,
 ) -> bool {
     ui.push_id(id, |ui| {
-        ui.horizontal(|ui| {
-            let mut pos = position(flip(*value, lo, hi, inverted), lo, hi, curve);
-            let r = ui
-                .add(
-                    egui::Slider::new(&mut pos, 0.0..=1.0)
-                        .text(performance_label(ui, id, label))
-                        .show_value(false),
-                )
-                .on_hover_text(help);
-            if r.changed() {
-                let shown = value_at(pos, lo, hi, curve);
-                *value = flip(
-                    if integer { shown.round() } else { shown },
-                    lo,
-                    hi,
-                    inverted,
-                );
-            }
-            let mut shown = flip(*value, lo, hi, inverted);
-            let number = ui
-                .add(
-                    egui::DragValue::new(&mut shown)
-                        .speed((hi - lo) / 500.0)
-                        .max_decimals(if integer { 0 } else { 6 }),
-                )
-                .on_hover_text(help);
-            if number.changed() {
-                *value = flip(
-                    if integer {
-                        shown.round().clamp(lo, hi)
-                    } else {
-                        shown.clamp(lo, hi)
-                    },
-                    lo,
-                    hi,
-                    inverted,
-                );
-            }
-            if matches!(id, "physics_steps" | "motion_blur_samples") {
-                observe_performance_drag(ui.ctx(), &r);
-                observe_performance_drag(ui.ctx(), &number);
-            }
-            active(ui, &r) || active(ui, &number)
-        })
-        .inner
+        ui.spacing_mut().item_spacing.y = 2.0;
+        ui.spacing_mut().interact_size.y = 24.0;
+        let mut shown = flip(*value, lo, hi, inverted);
+        let (number, label_id) = ui
+            .horizontal(|ui| {
+                let width = (ui.available_width() - 88.0).max(0.0);
+                let label = ui
+                    .allocate_ui_with_layout(
+                        egui::vec2(width, ui.spacing().interact_size.y),
+                        egui::Layout::left_to_right(egui::Align::Center),
+                        |ui| {
+                            ui.set_min_width(width);
+                            ui.add(
+                                egui::Label::new(performance_label(ui, id, label))
+                                    .wrap()
+                                    .halign(egui::Align::Min),
+                            )
+                        },
+                    )
+                    .inner
+                    .on_hover_text(help);
+                let number = ui
+                    .allocate_ui_with_layout(
+                        egui::vec2(80.0, ui.spacing().interact_size.y),
+                        egui::Layout::centered_and_justified(ui.layout().main_dir()),
+                        |ui| {
+                            let muted = ui.visuals().weak_text_color();
+                            let inactive = &mut ui.visuals_mut().widgets.inactive;
+                            inactive.bg_fill = egui::Color32::TRANSPARENT;
+                            inactive.bg_stroke = egui::Stroke::NONE;
+                            inactive.fg_stroke.color = muted;
+                            ui.add(
+                                egui::DragValue::new(&mut shown)
+                                    .speed((hi - lo) / 500.0)
+                                    .max_decimals(if integer { 0 } else { 6 }),
+                            )
+                        },
+                    )
+                    .inner
+                    .on_hover_text(help)
+                    .labelled_by(label.id);
+                (number, label.id)
+            })
+            .inner;
+        if number.changed() {
+            *value = flip(
+                if integer {
+                    shown.round().clamp(lo, hi)
+                } else {
+                    shown.clamp(lo, hi)
+                },
+                lo,
+                hi,
+                inverted,
+            );
+        }
+        let mut pos = position(flip(*value, lo, hi, inverted), lo, hi, curve);
+        let r = ui
+            .scope(|ui| {
+                ui.spacing_mut().interact_size.y = 20.0;
+                ui.spacing_mut().slider_width = ui.available_width();
+                ui.add(egui::Slider::new(&mut pos, 0.0..=1.0).show_value(false))
+                    .on_hover_text(help)
+                    .labelled_by(label_id)
+            })
+            .inner;
+        if r.changed() {
+            let shown = value_at(pos, lo, hi, curve);
+            *value = flip(
+                if integer { shown.round() } else { shown },
+                lo,
+                hi,
+                inverted,
+            );
+        }
+        if matches!(id, "physics_steps" | "motion_blur_samples") {
+            observe_performance_drag(ui.ctx(), &r);
+            observe_performance_drag(ui.ctx(), &number);
+        }
+        active(ui, &r) || active(ui, &number)
     })
     .inner
 }
+
 fn f32_slider(
     ui: &mut Ui,
     id: &str,
@@ -254,7 +292,7 @@ fn gated_integer(
     *value = v as u32;
 }
 fn choice(ui: &mut Ui, id: &str, label: &str, value: &mut u32, options: &[&str], help: &str) {
-    ui.horizontal(|ui| {
+    ui.horizontal_wrapped(|ui| {
         ui.label(label).on_hover_text(help);
         egui::ComboBox::from_id_salt(id)
             .selected_text(options.get(*value as usize).copied().unwrap_or("Unknown"))
@@ -273,10 +311,12 @@ fn input(ui: &mut Ui, id: &str, label: &str, value: &mut f64, lo: f64, hi: f64, 
         d.get_temp::<String>(key)
             .unwrap_or_else(|| value.to_string())
     });
-    ui.horizontal(|ui| {
+    ui.vertical(|ui| {
         ui.label(performance_label(ui, id, label))
             .on_hover_text(help);
-        let r = ui.text_edit_singleline(&mut text).on_hover_text(help);
+        let r = ui
+            .add(egui::TextEdit::singleline(&mut text).desired_width(ui.available_width()))
+            .on_hover_text(help);
         if (r.has_focus() || r.lost_focus()) && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
             if let Ok(v) = text.parse::<f64>() {
                 if v.is_finite() && (lo..=hi).contains(&v) {
@@ -314,7 +354,7 @@ pub fn project_panel(ui: &mut Ui, project: &mut Project, prefs: &mut Preferences
         });
     }
     ui.push_id(generation,|ui| {
-    egui::CollapsingHeader::new("Population").default_open(true).show(ui,|ui| {
+    egui::CollapsingHeader::new("Population").id_salt("Population").default_open(true).show(ui,|ui| {
         integer_slider(ui,"cohorts","Cohorts",&mut project.config_mut().cohorts,1.0,64.0,"How many groups the population is divided into. When mutation Scale > 0, each cohort gets its own mutation of the parent behavior.");
         if advanced {
         choice(ui,"boundary_conditions","Boundary Conditions",&mut project.world.boundary_conditions,&["Bounce","Wrap","Reset","Kill"],"What happens when a particle reaches the edge of the world: Bounce reflects it, reset returns it to starting position, wrap carries it around to the opposite edge, and kill destroys it.");
@@ -325,7 +365,7 @@ pub fn project_panel(ui: &mut Ui, project: &mut Project, prefs: &mut Preferences
         gated(ui,"hazard_rate","Hazard Rate",&mut project.config_mut().hazard_rate,0.0,0.01,3.0,false,0.0,false,"Applies a small probability each tick for a particle to \"die\" and be \"reincarnated\" at its initial conditions");
         }
     });
-    egui::CollapsingHeader::new("Sensors").default_open(true).show(ui,|ui| {
+    egui::CollapsingHeader::new("Sensing").id_salt("Sensors").default_open(true).show(ui,|ui| {
         slider(ui,"sensor_angle","Sensor Angle",&mut project.config_mut().sensor_angle,-1.0,1.0,1.0,false,false,"Defines how wide the angle is between a particle's two sensor locations. Values near 0.0 are looking straight ahead, values near 0.5 look to the left and right, while values near 1.0 look behind.");
         if advanced {
         gated(ui,"sensor_angle_jitter","Sensor Angle Jitter",&mut project.config_mut().sensor_angle_jitter,0.0,1.0,1.0,false,0.0,false,"Adds random, per-tick variation to each particle's sensor angle");
@@ -338,7 +378,7 @@ pub fn project_panel(ui: &mut Ui, project: &mut Project, prefs: &mut Preferences
         slider(ui,"sensor_gain","Sensor Gain",&mut project.config_mut().sensor_gain,0.0,8.0,1.0,false,false,"Controls sensitivity to vector flow. Current MLP/GRU models also observe occupancy and their own speed independently of this gain.");
         }
     });
-    egui::CollapsingHeader::new("Forces").default_open(true).show(ui,|ui| {
+    egui::CollapsingHeader::new("Movement").id_salt("Forces").default_open(true).show(ui,|ui| {
         if advanced {
         slider(ui,"global_force_mult","Global Force",&mut project.config_mut().global_force_mult,0.0,1.0,1.0,false,false,"Determines the strength with which particles turn quickly, accelerate, and strafe");
         }
@@ -372,11 +412,11 @@ pub fn project_panel(ui: &mut Ui, project: &mut Project, prefs: &mut Preferences
         ui.ctx().data_mut(|d|d.insert_temp(key,gravity));
     });
     if advanced {
-    egui::CollapsingHeader::new("Trails").default_open(true).show(ui,|ui| {
+    egui::CollapsingHeader::new("Shared Trails").id_salt("Trails").default_open(true).show(ui,|ui| {
         slider(ui,"trail_persistence","Trail Persistence",&mut project.world.trail_persistence,0.5,0.999,1.0,false,false,"Determines how long particle trails remain detectable. At high values, trails will spread widely and decay slowly.");
     });
     }
-    egui::CollapsingHeader::new("Appearance").default_open(true).show(ui,|ui| {
+    egui::CollapsingHeader::new("Color").id_salt("Appearance").default_open(true).show(ui,|ui| {
         if advanced {
         slider(ui,"color_sensitivity","Color Sensitivity",&mut project.config_mut().color_sensitivity,-1.0,1.0,1.0,false,false,"Determines how sensitive the hue of a particle is to its brain outputs. At high values particle hue becomes chaotic and regions will become a random mix of hues: appearing pale/white. Pairs with Color Offset, which decides where on the wheel that response starts");
         }
@@ -400,7 +440,7 @@ pub fn preferences_panel(ui: &mut Ui, prefs: &mut Preferences, hints: &Performan
     ui.ctx()
         .data_mut(|d| d.insert_temp(egui::Id::new("performance band"), hints.band));
     ui.checkbox(&mut prefs.advanced_preferences, "Advanced")
-        .on_hover_text("Show/Hide the advanced preferences settings");
+        .on_hover_text("Show advanced run and interaction settings");
     let advanced = prefs.advanced_preferences;
     egui::CollapsingHeader::new("Simulation").default_open(true).show(ui,|ui| {
         input(ui,"world_size","World Size",&mut prefs.world_size,0.05,27.0,"(Expensive) Determines the particle count and resolution of the trail map. Overall density -- Particles/Trail pixel -- is kept constant.");
@@ -413,52 +453,13 @@ pub fn preferences_panel(ui: &mut Ui, prefs: &mut Preferences, hints: &Performan
         integer_slider(ui,"physics_steps","Physics Rate",&mut prefs.physics_steps,1.0,60.0,"(Expensive) Determines how many physics substeps are performed per frame. Higher values run the simulation faster.");
         ui.small(physics_rate_readout(prefs.physics_steps, hints.presentation_fps, hints.fixed_rate, hints.physics_ms_per_step));
     });
-    egui::CollapsingHeader::new("Display").default_open(true).show(ui,|ui| {
-        ui.horizontal(|ui| {ui.label(performance_label(ui,"cell_style","Style")).on_hover_text("(Expensive) Cells redraws every particle as an integer-accumulated sprite and shades the image several times per pixel, costing several times the GPU time of Classic. Its cost grows with particle count and screen resolution.");ui.selectable_value(&mut prefs.cells.style,crate::cells::Style::Classic,"Classic");ui.selectable_value(&mut prefs.cells.style,crate::cells::Style::Cells,"Cells (Expensive)");});
-        if prefs.cells.style==crate::cells::Style::Cells {
-            ui.horizontal(|ui| {ui.label("Theme");ui.selectable_value(&mut prefs.cells.theme,crate::cells::Theme::Dark,"Dark");ui.selectable_value(&mut prefs.cells.theme,crate::cells::Theme::Light,"Light");});
-            f32_slider(ui,"cell_scale","Cell Scale",&mut prefs.cells.scale,0.5,4.0,1.0,"(Expensive) Particle size in the cellular image; larger cells cover more pixels and take more GPU time. Does not change physics");
-            f32_slider(ui,"cell_membranes","Cell Membranes",&mut prefs.cells.membranes,0.0,1.0,1.0,"Soft cell walls and shaded interiors revealed as you zoom in. 0 restores solid pigment. Uses the current particle colors.");
-            f32_slider(ui,"cell_density","Density Response",&mut prefs.cells.density,0.0,1.0,1.0,"Crowded regions show smaller grains");
-            f32_slider(ui,"cell_structure_threshold","Structure Threshold",&mut prefs.cells.structure_threshold,0.0,4.0,1.0,"Fade scattered grain below this local density. 0 = off; try 1–2. Denser strands and clusters remain; physics and Color Wash are unchanged.");
-            f32_slider(ui,"cell_relief","Cell Relief",&mut prefs.cells.relief,0.0,0.9,1.0,"Bounded image displacement, in reference pixels");
-            f32_slider(ui,"cell_wash","Color Wash",&mut prefs.cells.wash,0.0,1.0,1.0,"Broad unthresholded background color");
-            if advanced {
-                ui.checkbox(&mut prefs.cells.reference_palette,"Green / pink palette");
-                f32_slider(ui,"cell_contrast","Cell Edge Contrast",&mut prefs.cells.contrast,0.0,2.0,1.0,"Adds soft relief to cell edges");
-                f32_slider(ui,"cell_chromatic","Chromatic Separation",&mut prefs.cells.chromatic,0.0,0.5,1.0,"(Expensive) Subpixel color separation; UI stays sharp. Shades each pixel two extra times.");
-                f32_slider(ui,"cell_sharpen","Cell Sharpening",&mut prefs.cells.sharpen,0.0,0.5,1.0,"(Expensive) Restrained sharpening before editor overlays. Shades each pixel four extra times, roughly tripling the Cells finishing cost.");
-                f32_slider(ui,"cell_zoom","Zoom Compensation",&mut prefs.cells.zoom_response,0.2,1.0,1.0,"How sprite size responds to zoom");
-                ui.checkbox(&mut prefs.cells.fast,performance_label(ui,"cell_fast","Fast Cells")).on_hover_text("Faster rendering with small cell-edge differences and more GPU memory.");
-                ui.checkbox(&mut prefs.cells.detailed,performance_label(ui,"cell_detailed","Detailed density grid")).on_hover_text("(Expensive) Quadruples the density grid behind cell sizing.");
-            }
-        }
-        f32_slider(ui,"brightness","Brightness",&mut prefs.brightness,0.1,4.0,1.0,"Determines overall intensity of each particle");
-        if advanced {
-        f32_slider(ui,"tonemap_softness","Tonemap Softness",&mut prefs.tonemap_softness,0.1,5.0,1.0,"Determines how aggressively the bright highlights are dimmed. High values have reduced contrast between bright and dim regions.");
-        }
+    egui::CollapsingHeader::new("Performance").default_open(true).show(ui,|ui| {
         gated_integer(ui,"motion_blur_samples","Motion Blur",&mut prefs.motion_blur_samples,1.0,16.0,1.0,"(Expensive) Renders multiple images at different substeps and blends them together. Results in a smoother, less noisy image");
-        ui.checkbox(&mut prefs.show_fps_counter,"Show FPS Counter").on_hover_text("The frame-rate badge in the top-right corner: frame rate, GPU time, particle count and Physics Rate. Its dot is red or yellow when the frame rate is falling behind and green when it is holding; a grey ring means paused, recording or exporting, when the meter is not updating.\n\nThe number is capped at 60, the simulation's target frame rate.\n\nThe same colour tints World Size, Physics Rate, the active Motion Blur slider and the costly Cells settings, which decide it.");
-        if advanced {
-        ui.checkbox(&mut prefs.show_physics_slider,"Show Physics Rate Widget").on_hover_text("The fast-forward button and its rate slider, at the right edge. It is the way to reach Physics Rate while the panels are hidden.\n\nUntick to remove it from the screen entirely. To merely fold the slider away and keep the button, press the button itself -- and right-click it to auto-calibrate the rate.");
-        }
-        ui.checkbox(&mut prefs.bloom_enabled,"Bloom").on_hover_text("Adds a glowing halo effect to over-bright regions");
-        if advanced {
-        if prefs.bloom_enabled {
-        f32_slider(ui,"bloom_threshold","Threshold",&mut prefs.bloom_threshold,0.0,2.0,1.0,"Determines the brightness above which bloom is applied");
-        }
-        }
-        if advanced {
-        if prefs.bloom_enabled {
-        f32_slider(ui,"bloom_intensity","Intensity",&mut prefs.bloom_intensity,0.0,0.5,1.0,"Determines the strength of the bloom effect");
-        }
-        }
-        if advanced {
-        if prefs.bloom_enabled {
-        f32_slider(ui,"bloom_radius","Radius",&mut prefs.bloom_radius,0.1,1.0,1.0,"Determines the size of the bloom halo");
-        }
-        }
         render_scale(ui, prefs);
+        ui.checkbox(&mut prefs.show_fps_counter,"Show FPS Counter").on_hover_text("The quiet frame-rate readout above the playback controls. Click it to open Settings; hover for GPU timing and the full readout. Measurement pauses while the simulation is paused, recording, or exporting.\n\nThe number is capped at 60, the simulation's target frame rate.\n\nWorld Size, Physics Rate, Motion Blur, and costly Cells settings show yellow or red warnings when the frame rate falls behind.");
+        {
+            ui.checkbox(&mut prefs.show_physics_slider,"Show Physics Rate").on_hover_text("The quiet rate readout above the playback controls. Click it to open Settings and adjust Physics Rate; right-click to calibrate or cancel calibration.\n\nUntick to hide this readout.");
+        }
     });
     if advanced {
         egui::CollapsingHeader::new("Behavior").default_open(true).show(ui,|ui| {
@@ -474,6 +475,56 @@ pub fn preferences_panel(ui: &mut Ui, prefs: &mut Preferences, hints: &Performan
     }
 }
 
+pub fn appearance_panel(
+    ui: &mut Ui,
+    prefs: &mut Preferences,
+    hints: &PerformanceHints,
+    allow_style_change: bool,
+) {
+    ui.ctx()
+        .data_mut(|d| d.insert_temp(egui::Id::new("performance band"), hints.band));
+    ui.checkbox(&mut prefs.advanced_preferences, "Advanced")
+        .on_hover_text("Show advanced appearance settings");
+    let advanced = prefs.advanced_preferences;
+    egui::CollapsingHeader::new("Appearance").default_open(true).show(ui,|ui| {
+        ui.add_enabled_ui(allow_style_change, |ui| {
+            ui.horizontal_wrapped(|ui| {ui.label(performance_label(ui,"cell_style","Style")).on_hover_text("(Expensive) Cells redraws every particle as an integer-accumulated sprite and shades the image several times per pixel, costing several times the GPU time of Classic. Its cost grows with particle count and screen resolution.");ui.selectable_value(&mut prefs.cells.style,crate::cells::Style::Classic,"Classic");ui.selectable_value(&mut prefs.cells.style,crate::cells::Style::Cells,"Cells");});
+        });
+        if prefs.cells.style == crate::cells::Style::Cells {
+            ui.horizontal_wrapped(|ui| {ui.label("Theme");ui.selectable_value(&mut prefs.cells.theme,crate::cells::Theme::Dark,"Dark");ui.selectable_value(&mut prefs.cells.theme,crate::cells::Theme::Light,"Light");});
+            f32_slider(ui,"cell_scale","Cell Scale",&mut prefs.cells.scale,0.5,4.0,1.0,"(Expensive) Particle size in the cellular image; larger cells cover more pixels and take more GPU time. Does not change physics");
+            f32_slider(ui,"cell_membranes","Cell Membranes",&mut prefs.cells.membranes,0.0,1.0,1.0,"Soft cell walls and shaded interiors revealed as you zoom in. 0 restores solid pigment. Uses the current particle colors.");
+            f32_slider(ui,"cell_density","Density Response",&mut prefs.cells.density,0.0,1.0,1.0,"Crowded regions show smaller grains");
+            f32_slider(ui,"cell_structure_threshold","Structure Threshold",&mut prefs.cells.structure_threshold,0.0,4.0,1.0,"Fade scattered grain below this local density. 0 = off; try 1–2. Denser strands and clusters remain; physics and Color Wash are unchanged.");
+            f32_slider(ui,"cell_relief","Cell Relief",&mut prefs.cells.relief,0.0,0.9,1.0,"Bounded image displacement, in reference pixels");
+            f32_slider(ui,"cell_wash","Color Wash",&mut prefs.cells.wash,0.0,1.0,1.0,"Broad unthresholded background color");
+        }
+    });
+    egui::CollapsingHeader::new("Light & Detail").default_open(true).show(ui,|ui| {
+        f32_slider(ui,"brightness","Brightness",&mut prefs.brightness,0.1,4.0,1.0,"Determines overall intensity of each particle");
+        ui.checkbox(&mut prefs.bloom_enabled,"Bloom").on_hover_text("Adds a glowing halo effect to over-bright regions");
+        if advanced {
+            f32_slider(ui,"tonemap_softness","Tonemap Softness",&mut prefs.tonemap_softness,0.1,5.0,1.0,"Determines how aggressively the bright highlights are dimmed. High values have reduced contrast between bright and dim regions.");
+            if prefs.bloom_enabled {
+                f32_slider(ui,"bloom_threshold","Threshold",&mut prefs.bloom_threshold,0.0,2.0,1.0,"Determines the brightness above which bloom is applied");
+                f32_slider(ui,"bloom_intensity","Intensity",&mut prefs.bloom_intensity,0.0,0.5,1.0,"Determines the strength of the bloom effect");
+                f32_slider(ui,"bloom_radius","Radius",&mut prefs.bloom_radius,0.1,1.0,1.0,"Determines the size of the bloom halo");
+            }
+            if prefs.cells.style == crate::cells::Style::Cells {
+                ui.checkbox(&mut prefs.cells.reference_palette,"Green / pink palette");
+                f32_slider(ui,"cell_contrast","Cell Edge Contrast",&mut prefs.cells.contrast,0.0,2.0,1.0,"Adds soft relief to cell edges");
+                f32_slider(ui,"cell_chromatic","Chromatic Separation",&mut prefs.cells.chromatic,0.0,0.5,1.0,"(Expensive) Subpixel color separation; UI stays sharp. Shades each pixel two extra times.");
+                f32_slider(ui,"cell_sharpen","Cell Sharpening",&mut prefs.cells.sharpen,0.0,0.5,1.0,"(Expensive) Restrained sharpening before editor overlays. Shades each pixel four extra times, roughly tripling the Cells finishing cost.");
+                f32_slider(ui,"cell_zoom","Zoom Compensation",&mut prefs.cells.zoom_response,0.2,1.0,1.0,"How sprite size responds to zoom");
+                ui.add_enabled_ui(allow_style_change, |ui| {
+                    ui.checkbox(&mut prefs.cells.fast,performance_label(ui,"cell_fast","Fast Cells")).on_hover_text("Faster rendering with small cell-edge differences and more GPU memory.");
+                    ui.checkbox(&mut prefs.cells.detailed,performance_label(ui,"cell_detailed","Detailed density grid")).on_hover_text("(Expensive) Quadruples the density grid behind cell sizing.");
+                });
+            }
+        }
+    });
+}
+
 /// Id of the canvas's physical pixel size, published by the app each frame.
 pub const PHYSICAL_CANVAS_ID: &str = "physical canvas";
 /// Id of the working size actually rendered, after any GPU-limit fit.
@@ -481,7 +532,7 @@ pub const WORKING_CANVAS_ID: &str = "working canvas";
 
 fn render_scale(ui: &mut Ui, prefs: &mut Preferences) {
     use crate::config::RenderScale;
-    ui.horizontal(|ui| {
+    ui.horizontal_wrapped(|ui| {
         ui.label("Render Scale").on_hover_text(
             "(Expensive) Working resolution of the live view, relative to the screen's pixels. \
              Auto keeps Classic at full resolution and caps Cells at a 1080-pixel short side. \
@@ -519,6 +570,7 @@ fn render_scale(ui: &mut Ui, prefs: &mut Preferences) {
 pub fn drawing_panel(ui: &mut Ui, prefs: &mut Preferences) {
     ui.checkbox(&mut prefs.advanced_drawing, "Advanced")
         .on_hover_text("Show/Hide the advanced drawing controls settings");
+    egui::CollapsingHeader::new("Brush").default_open(true).show(ui, |ui| {
     f32_slider(
         ui,
         "draw_size",
@@ -558,6 +610,10 @@ pub fn drawing_panel(ui: &mut Ui, prefs: &mut Preferences) {
             1.0,
             "The direction the Fixed brush pushes. 0 is up. The arrow on the brush reticle turns with it",
         );
+    }
+    });
+    if prefs.advanced_drawing {
+        egui::CollapsingHeader::new("Painted Fields").default_open(true).show(ui, |ui| {
         f32_slider(
             ui,
             "walls_strength",
@@ -590,12 +646,67 @@ pub fn drawing_panel(ui: &mut Ui, prefs: &mut Preferences) {
         );
         ui.checkbox(&mut prefs.field_always_show,"Always Show Walls").on_hover_text("Keep the painted walls visible in every tool, including Trails. The Walls tool shows them either way");
         ui.checkbox(&mut prefs.trails_always_show,"Always Show Trails").on_hover_text("Keep the painted trails visible in every tool, including Walls. The Trails tool shows them either way");
+    });
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn displaying_controls_preserves_imported_values_without_input() {
+        let mut project = Project::default();
+        project.config_mut().hazard_rate = 0.02;
+        project.config_mut().sensor_distance = 7.0;
+        project.config_mut().strafe_power = 0.8;
+        project.config_mut().gravity_force = 1.5;
+        project.world.trail_diffusion = -0.25;
+        let mut prefs = Preferences {
+            advanced_project: true,
+            advanced_preferences: true,
+            advanced_drawing: true,
+            physics_steps: 80,
+            motion_blur_samples: 31,
+            draw_size: 0.4,
+            ..Default::default()
+        };
+        prefs.cells.style = crate::cells::Style::Cells;
+        prefs.cells.scale = 5.0;
+        prefs.cells.fast = false;
+        let before_project = project.clone();
+        let before_prefs = prefs.clone();
+        let hints = PerformanceHints {
+            band: crate::performance::Band::Green,
+            physics_ms_per_step: None,
+            presentation_fps: 60,
+            fixed_rate: None,
+        };
+        let ctx = egui::Context::default();
+        for width in [336.0, 720.0] {
+            for _ in 0..2 {
+                let mut output = ctx.run_ui(
+                    egui::RawInput {
+                        screen_rect: Some(egui::Rect::from_min_size(
+                            egui::Pos2::ZERO,
+                            egui::vec2(width, 10000.0),
+                        )),
+                        ..Default::default()
+                    },
+                    |ui| {
+                        ui.push_id("project", |ui| project_panel(ui, &mut project, &mut prefs));
+                        ui.push_id("run", |ui| preferences_panel(ui, &mut prefs, &hints));
+                        ui.push_id("appearance", |ui| {
+                            appearance_panel(ui, &mut prefs, &hints, true)
+                        });
+                        ui.push_id("drawing", |ui| drawing_panel(ui, &mut prefs));
+                    },
+                );
+                output.textures_delta.clear();
+                assert_eq!(project, before_project);
+                assert_eq!(prefs, before_prefs);
+            }
+        }
+    }
     #[test]
     fn physics_rate_readout_reports_ticks_and_measured_cost() {
         assert_eq!(

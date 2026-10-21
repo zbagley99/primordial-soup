@@ -6,6 +6,7 @@ use crate::{
     history::History,
     render::{self, Overlays, Renderer},
     share,
+    studio_ui::{self, Icon, InspectorTab},
 };
 use anyhow::{Result, ensure};
 use eframe::{
@@ -149,6 +150,14 @@ struct PendingRenderer {
     previous: crate::cells::Settings,
     result: Arc<Mutex<Option<Option<String>>>>,
 }
+enum InspectorAction {
+    Mode(crate::network::Mode),
+    Layout(u32),
+    Mutation(f64, bool),
+    Adopt,
+    Undo,
+}
+
 pub struct SoupApp {
     context: egui::Context,
     pending_project: Option<PendingProject>,
@@ -167,6 +176,7 @@ pub struct SoupApp {
     camera: Camera,
     tool: Tool,
     show_panels: bool,
+    inspector_tab: InspectorTab,
     panels_hidden: bool,
     paused: bool,
     clock: crate::simulation::SimulationClock,
@@ -526,13 +536,7 @@ impl SoupApp {
         );
         let mut history = History::default();
         history.seed(state.project.clone());
-        cc.egui_ctx.set_visuals(egui::Visuals::dark());
-        cc.egui_ctx.style_mut_of(egui::Theme::Dark, |style| {
-            style.visuals.panel_fill = Color32::from_rgba_unmultiplied(24, 24, 27, 235);
-            style.visuals.window_fill = Color32::from_rgba_unmultiplied(24, 24, 27, 242);
-            style.visuals.selection.bg_fill = Color32::from_rgb(70, 105, 160);
-            style.spacing.slider_width = 155.0;
-        });
+        studio_ui::install(&cc.egui_ctx);
         let now = Instant::now();
         let frame_timer = crate::profiling::FrameTimer::new(&rs.device, &rs.queue);
         let mut app = Self {
@@ -557,6 +561,7 @@ impl SoupApp {
             },
             tool: Tool::Select,
             show_panels: false,
+            inspector_tab: InspectorTab::World,
             panels_hidden: opts.no_panels,
             paused: opts.paused,
             clock: Default::default(),
@@ -1451,14 +1456,15 @@ impl SoupApp {
         let old_settings = self.state.simulation;
         let old_auto = self.state.auto_calibrate;
         let mut open = self.show_timing;
-        egui::Window::new("Simulation Timing")
+        studio_ui::window("Simulation Timing", self.ui_layout(ctx).dialogs)
             .open(&mut open)
             .default_width(360.0)
             .show(ctx, |ui| {
+                studio_ui::dialog_controls(ui);
                 ui.label(format!("Completed tick {}", self.clock.completed_ticks()));
                 ui.small("Reset initializes the world at tick 0. Each tick keeps the original numerical update.");
                 ui.add_enabled_ui(!self.comparison_busy() && (self.recorder.is_none() && self.pending_export.is_none()) && self.calibration.is_none() && self.rate_calibration.is_none(), |ui| {
-                    ui.horizontal(|ui| {
+                    ui.horizontal_wrapped(|ui| {
                         if ui.button("Step 1").clicked() { self.advance_exactly(1); }
                         ui.add(egui::DragValue::new(&mut self.advance_steps).range(0..=1_000_000));
                         if ui.button("Advance N").clicked() { self.advance_exactly(self.advance_steps); }
@@ -1481,7 +1487,7 @@ impl SoupApp {
                     ui.label("Comparison running; simulation settings are locked.");
                     if ui.button("Cancel comparison").clicked() {self.cancel_comparison();}
                 } else {
-                    ui.horizontal(|ui| {
+                    ui.horizontal_wrapped(|ui| {
                         if ui.button("Restart comparison").clicked() {self.restart_comparison(0);}
                         if ui.button("Run N ticks").clicked() {self.restart_comparison(self.advance_steps);}
                     });
@@ -1507,7 +1513,7 @@ impl SoupApp {
                 .on_hover_text(tooltip);
                 ui.monospace(self.workload_lines().join("\n"));
                 self.gpu_budget(ui);
-                ui.horizontal(|ui| {
+                ui.horizontal_wrapped(|ui| {
                     if ui.button("Copy performance report").on_hover_text("JSON with adapter, workload, GPU median/p95 and stage timings, for comparing devices or builds").clicked() {
                         ctx.copy_text(serde_json::to_string_pretty(&self.performance_report()).unwrap_or_default());
                         self.notice = "Copied performance report (JSON)".into();
@@ -1687,7 +1693,7 @@ impl SoupApp {
             return;
         }
         self.gpu.commit_project(pending.prepared);
-        self.notice = format!("{} network ready", pending.next.config().mode().label());
+        self.notice.clear();
         self.state.project = pending.next;
         match pending.purpose {
             ProjectPurpose::Preview { original } => self.preview = Some(original),
@@ -2005,6 +2011,16 @@ impl SoupApp {
         crate::web::set_panels_hidden(self.panels_hidden);
     }
 
+    fn select_tool(&mut self, tool: Tool) {
+        self.tool = tool;
+        self.stroke = Default::default();
+        self.highlighted = None;
+        self.render.clear_cells_highlight();
+        if tool == Tool::Select && self.inspector_tab == InspectorTab::Brush {
+            self.inspector_tab = InspectorTab::World;
+        }
+    }
+
     fn hotkeys(&mut self, ctx: &egui::Context, now: f64) {
         if ctx.text_edit_focused() {
             return;
@@ -2126,10 +2142,7 @@ impl SoupApp {
             (Key::Num4, Tool::Trails),
         ] {
             if pressed(key) {
-                self.tool = tool;
-                self.stroke = Default::default();
-                self.highlighted = None;
-                self.render.clear_cells_highlight();
+                self.select_tool(tool);
             }
         }
         if self.tool == Tool::Select && (pressed(Key::ArrowRight) || pressed(Key::ArrowLeft)) {
@@ -2231,403 +2244,547 @@ impl SoupApp {
         Ok(())
     }
 
+    fn ui_layout(&self, ctx: &egui::Context) -> studio_ui::Layout {
+        studio_ui::Layout::new(ctx.content_rect(), self.show_panels, true)
+    }
+
+    fn status_controls(&mut self, ui: &mut egui::Ui, now: f64) {
+        ui.scope(|ui| {
+            ui.spacing_mut().interact_size.y = 18.0;
+            ui.spacing_mut().button_padding = egui::vec2(2.0, 0.0);
+            ui.horizontal(|ui| {
+                if self.state.prefs.show_fps_counter {
+                    let dot = self.dot_state(now);
+                    status_dot(ui, dot);
+                    let fps = if dot == crate::performance::DotState::Idle {
+                        format!("{} fps · {}", self.fps.readout, self.meter_idle_label().to_lowercase())
+                    } else { format!("{} fps", self.fps.readout) };
+                    if ui.add(egui::Button::new(egui::RichText::new(fps).size(11.0).color(studio_ui::MUTED)).frame(false))
+                        .on_hover_text(format!("{}\n\n{}", self.badge_text(dot), self.performance_tooltip(dot))).clicked()
+                    {
+                        self.inspector_tab = InspectorTab::Settings;
+                        self.show_panels = true;
+                    }
+                }
+                if self.state.prefs.show_physics_slider {
+                    if self.state.prefs.show_fps_counter { ui.label(egui::RichText::new("·").size(11.0).color(studio_ui::MUTED)); }
+                    let rate = ui.add(egui::Button::new(egui::RichText::new(format!("Physics {}", self.rate_label())).size(11.0).color(studio_ui::MUTED)).frame(false))
+                        .on_hover_text("Configured physics rate. Click to adjust; right-click to calibrate. FPS measurement pauses with the simulation.");
+                    if rate.clicked() {
+                        self.inspector_tab = InspectorTab::Settings;
+                        self.show_panels = true;
+                    }
+                    if rate.secondary_clicked() { self.start_rate_calibration(); }
+                }
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    ui.label(egui::RichText::new("X to hide").size(11.0).color(studio_ui::MUTED));
+                });
+            });
+        });
+    }
+
     fn menu(&mut self, ctx: &egui::Context, now: f64) {
-        if self.comparison_busy()
-            || self
-                .pending_project
-                .as_ref()
-                .is_some_and(|p| !matches!(p.purpose, ProjectPurpose::Preview { .. }))
-        {
-            return;
-        }
         self.preview_hovered = false;
         if self.panels_hidden {
             self.restore_preset_preview();
             return;
         }
-        egui::Area::new("menu".into())
-            .order(egui::Order::Foreground)
-            .fixed_pos([0.0, 0.0])
-            .default_width(0.0)
+        let layout = self.ui_layout(ctx);
+        let locked = self.comparison_busy()
+            || self
+                .pending_project
+                .as_ref()
+                .is_some_and(|p| !matches!(p.purpose, ProjectPurpose::Preview { .. }));
+        egui::Area::new("command dock".into())
+            .order(egui::Order::Middle)
+            .fixed_pos(layout.dock.min)
+            .movable(false)
             .show(ctx, |ui| {
-                egui::Frame::popup(ui.style()).show(ui, |ui| {
-                    // MenuBar fills its available width. Start at zero and let
-                    // unwrapped labels determine this floating bar's width.
-                    ui.set_max_width(0.0);
-                    egui::MenuBar::new()
-                        .config(
-                            egui::containers::menu::MenuConfig::new()
-                                .close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside),
-                        )
-                        .ui(ui, |ui| {
-                            ui.menu_button("File", |ui| {
-                                ui.menu_button("Load", |ui| {
-                                    let mut candidate = None;
-                                    let mut committed = false;
-                                    // A popup remembers its compact height. Let expanding a
-                                    // category grow the viewport instead of clipping its body.
-                                    let height =
-                                        (ctx.content_rect().height() - 80.0).clamp(100.0, 650.0);
-                                    ui.set_max_height(height);
-                                    egui::ScrollArea::vertical().max_height(height).show(
-                                        ui,
-                                        |ui| {
-                                            for category in ["Core", "Custom", "Archive"] {
-                                                let count = if category == "Custom" {
-                                                    self.state.saves.len()
-                                                } else {
-                                                    self.presets
-                                                        .iter()
-                                                        .filter(|p| p.category == category)
-                                                        .count()
-                                                };
-                                                if count == 0 {
-                                                    continue;
-                                                }
-                                                egui::CollapsingHeader::new(format!(
-                                                    "{category} ({count})"
-                                                ))
-                                                .id_salt(("preset category", category))
-                                                .default_open(category != "Archive")
-                                                .show(ui, |ui| {
-                                                    if category == "Custom" {
-                                                        let mut delete = None;
-                                                        for (name, p) in &self.state.saves {
-                                                            ui.horizontal(|ui| {
-                                                                let response = ui.button(name);
-                                                                if response.hovered() {
-                                                                    self.preview_hovered = true;
-                                                                    candidate = Some(p.clone());
-                                                                }
-                                                                if response.clicked() {
-                                                                    candidate = Some(p.clone());
-                                                                    committed = true;
-                                                                }
-                                                                if ui
-                                                                    .small_button("×")
-                                                                    .on_hover_text(
-                                                                        "Delete this save",
-                                                                    )
-                                                                    .clicked()
-                                                                {
-                                                                    delete = Some(name.clone());
-                                                                }
-                                                            });
-                                                        }
-                                                        if let Some(name) = delete {
-                                                            self.state.saves.remove(&name);
-                                                            self.save_now = true;
-                                                        }
-                                                    } else {
-                                                        for preset in &self.presets {
-                                                            if preset.category != category {
-                                                                continue;
-                                                            }
-                                                            let response = ui.button(preset.name);
-                                                            if response.hovered() {
-                                                                self.preview_hovered = true;
-                                                                candidate =
-                                                                    Some(preset.project.clone());
-                                                            }
-                                                            if response.clicked() {
-                                                                candidate =
-                                                                    Some(preset.project.clone());
-                                                                committed = true;
-                                                            }
-                                                        }
-                                                    }
-                                                });
-                                            }
-                                        },
-                                    );
-                                    if let Some(p) = candidate.filter(|_| {
-                                        self.recorder.is_none() && self.pending_export.is_none()
-                                    }) {
-                                        if committed {
-                                            self.load(p, "Load Preset", now);
-                                            ui.close();
-                                        } else if p != self.state.project
-                                            && p.config().mode()
-                                                == self.state.project.config().mode()
-                                        {
-                                            self.preview_project(p);
-                                        } else if p.config().mode()
-                                            != self.state.project.config().mode()
-                                        {
-                                            self.restore_preset_preview();
-                                        } else {
-                                            self.cancel_pending_preview();
-                                        }
+                studio_ui::surface().inner_margin(6).show(ui, |ui| {
+                    ui.set_width((layout.dock.width() - 12.0).max(0.0));
+                    ui.spacing_mut().item_spacing = egui::vec2(4.0, 0.0);
+                    self.status_controls(ui, now);
+                    ui.add_space(4.0);
+                    ui.spacing_mut().interact_size.y = if layout.narrow { 44.0 } else { 36.0 };
+                    ui.add_enabled_ui(!locked, |ui| {
+                        ui.horizontal(|ui| {
+                            self.playback_controls(ui, layout.narrow);
+                            let height = ui.spacing().interact_size.y;
+                            let (divider, _) =
+                                ui.allocate_exact_size(egui::vec2(8.0, height), Sense::hover());
+                            ui.painter().vline(
+                                divider.center().x,
+                                divider.y_range().shrink(9.0),
+                                egui::Stroke::new(1.0, studio_ui::LINE),
+                            );
+                            studio_ui::menu(ui, "Presets", layout.dock.top(), |ui| {
+                                self.preset_picker(ui, ctx, now)
+                            })
+                            .on_hover_text("Fluoddity presets and your saved projects");
+                            let icon = match self.tool {
+                                Tool::Select => Icon::Select,
+                                Tool::Shove => Icon::Shove,
+                                Tool::Walls => Icon::Walls,
+                                Tool::Trails => Icon::Trails,
+                            };
+                            let width = if layout.narrow { 44.0 } else { 36.0 };
+                            studio_ui::icon_menu(
+                                ui,
+                                icon,
+                                "Interaction tools",
+                                width,
+                                layout.dock.top(),
+                                |ui| self.tool_menu(ui),
+                            )
+                            .on_hover_text(format!("{} · interaction tools", self.tool.label()));
+                            if studio_ui::action(
+                                ui,
+                                Icon::Settings,
+                                "Inspect",
+                                if layout.narrow { 44.0 } else { 84.0 },
+                                false,
+                            )
+                            .on_hover_text("World, appearance, and settings")
+                            .clicked()
+                            {
+                                self.show_panels = !self.show_panels;
+                            }
+                            studio_ui::icon_menu(
+                                ui,
+                                Icon::More,
+                                "More commands",
+                                width,
+                                layout.dock.top(),
+                                |ui| {
+                                    if ui.button("Reset world · R").clicked() {
+                                        self.reset();
+                                        ui.close();
                                     }
-                                });
-                                ui.menu_button("Save", |ui| {
-                                    ui.text_edit_singleline(&mut self.save_name);
-                                    if ui
-                                        .add_enabled(self.can_save, egui::Button::new("Save as…"))
-                                        .clicked()
-                                    {
-                                        let name = crate::export::sanitize_name(&self.save_name);
-                                        if !name.is_empty() {
-                                            let mut p = self.state.project.clone();
-                                            p.name = name.clone();
-                                            self.state.saves.insert(name.clone(), p);
-                                            self.notice = format!("Saving {name}…");
-                                            self.save_now = true;
-                                            ui.close();
-                                        }
-                                    }
-                                });
-                                if ui.button("Import / Export JSON…").clicked() {
-                                    self.transfer = true;
-                                    self.transfer_text =
-                                        self.state.project.to_json().unwrap_or_default();
-                                    ui.close();
-                                }
-                                if ui.button("Download JSON").clicked() {
-                                    if let Ok(text) = self.state.project.to_json() {
-                                        self.notice = download(
-                                            &format!(
-                                                "{}.json",
-                                                safe_name(&self.state.project.name)
-                                            ),
-                                            text.as_bytes(),
-                                            "application/json",
-                                        )
-                                        .unwrap_or_else(|e| e.to_string());
-                                    }
-                                    ui.close();
-                                }
-                                if ui
-                                    .add_enabled(
-                                        !self.state.saves.is_empty(),
-                                        egui::Button::new("Export Custom Saves (ZIP)"),
-                                    )
-                                    .clicked()
-                                {
-                                    self.notice = crate::export::export_zip(&self.state.saves)
-                                        .and_then(|bytes| {
-                                            download(
-                                                "Primordial-Soup-Custom-Saves.zip",
-                                                &bytes,
-                                                "application/zip",
+                                    if layout.narrow
+                                        && ui
+                                            .add_enabled(
+                                                self.paused,
+                                                egui::Button::new("Step one tick"),
                                             )
-                                        })
-                                        .unwrap_or_else(|e| e.to_string());
-                                    ui.close();
-                                }
-                                if ui.button("Screenshot (P)").clicked() {
-                                    self.show_capture = true;
-                                    self.capture_qr = false;
-                                    self.capture_clipboard = false;
-                                    ui.close();
-                                }
-                            });
-                            ui.menu_button("Share", |ui| {
-                                if ui.button("Copy Share Link (Shift+C)").clicked() {
-                                    self.share(ctx);
-                                    ui.close();
-                                }
-                                if ui.button("Open Share Link (Shift+V)…").clicked() {
-                                    self.transfer = true;
-                                    self.transfer_text.clear();
-                                    ui.close();
-                                }
-                                if ui.button("Save Image (P)").clicked() {
-                                    self.show_capture = true;
-                                    self.capture_qr = false;
-                                    self.capture_clipboard = false;
-                                    ui.close();
-                                }
-                                if ui.button("Copy Image with QR (Shift+P)…").clicked() {
-                                    self.show_capture = true;
-                                    self.capture_qr = true;
-                                    self.capture_clipboard = true;
-                                    ui.close();
-                                }
-                                if ui.button("Project Link Settings…").clicked() {
-                                    self.show_link = true;
-                                    ui.close();
-                                }
-                                #[cfg(target_arch = "wasm32")]
-                                if ui.button("Import Image with QR…").clicked() {
-                                    crate::web::import_image(self.incoming.clone(), ctx.clone());
-                                    ui.close();
-                                }
-                                if ui.button("Record World (Video)…").clicked() {
-                                    if self.recorder.is_none()
-                                        && self.pending_export.is_none()
-                                        && !self.show_recording
+                                            .clicked()
                                     {
-                                        self.state.recording_settings.physics_steps =
-                                            self.state.prefs.physics_steps;
-                                        self.state.recording_settings.motion_blur_samples =
-                                            self.state.prefs.motion_blur_samples;
-                                    }
-                                    self.show_recording = true;
-                                    ui.close();
-                                }
-                            });
-                            ui.menu_button("History", |ui| {
-                                if ui
-                                    .add_enabled(
-                                        self.history.can_undo(),
-                                        egui::Button::new(format!(
-                                            "Undo {} (Z)",
-                                            self.history.undo_label()
-                                        )),
-                                    )
-                                    .clicked()
-                                {
-                                    self.undo(false);
-                                    ui.close();
-                                }
-                                if ui
-                                    .add_enabled(
-                                        self.history.can_redo(),
-                                        egui::Button::new(format!(
-                                            "Redo {} (Shift+Z)",
-                                            self.history.redo_label()
-                                        )),
-                                    )
-                                    .clicked()
-                                {
-                                    self.undo(true);
-                                    ui.close();
-                                }
-                                if ui.button("Set Checkpoint (C)").clicked() {
-                                    self.checkpoint();
-                                }
-                                let checkpoints = self.state.checkpoints.clone();
-                                for (i, p) in checkpoints.into_iter().enumerate().rev() {
-                                    if ui.button(format!("{} · {}", i + 1, p.name)).clicked() {
-                                        self.load(p, "Load Checkpoint", now);
+                                        self.advance_exactly(1);
                                         ui.close();
                                     }
-                                }
-                            });
-                            ui.menu_button("Editor", |ui| {
-                                if ui
-                                    .checkbox(&mut self.show_panels, "Control Panels")
-                                    .changed()
-                                {
-                                    ui.close();
-                                }
-                                ui.checkbox(&mut self.debug, "Performance Readout");
-                                if ui.button("Reset View (Home)").clicked() {
-                                    self.camera.reset();
-                                }
-                                if ui.button("Reset Preferences").clicked() {
-                                    if let Err(e) = self.rebuild(Preferences::default()) {
-                                        self.notice = e.to_string();
+                                    if ui.button("New variation · F").clicked() {
+                                        self.reroll(false, now);
+                                        ui.close();
                                     }
-                                    self.save_now = true;
-                                }
-                                if self.state.prefs.strong_logging {
                                     ui.separator();
-                                    ui.label(format!(
-                                        "{} archive events this session",
-                                        self.archive_count
-                                    ));
-                                    if ui.button("Export State Archive (JSON)").clicked() {
-                                        #[cfg(target_arch = "wasm32")]
-                                        crate::web::export_archive(
-                                            self.notices.clone(),
-                                            ctx.clone(),
-                                        );
-                                        #[cfg(not(target_arch = "wasm32"))]
-                                        if let Some(writer) = &self.archive_writer {
-                                            if let Err(e) = writer.export() {
-                                                self.notice = e.to_string();
-                                            }
-                                        }
-                                        ui.close();
-                                    }
-                                    if ui.button("Clear State Archive").clicked() {
-                                        #[cfg(target_arch = "wasm32")]
-                                        crate::web::clear_archive(
-                                            self.notices.clone(),
-                                            ctx.clone(),
-                                        );
-                                        #[cfg(not(target_arch = "wasm32"))]
-                                        if let Some(writer) = &self.archive_writer {
-                                            if let Err(e) = writer.clear() {
-                                                self.notice = e.to_string();
-                                            }
-                                        }
-                                        self.archive_cursor = None;
-                                        self.archive_count = 0;
-                                        ui.close();
-                                    }
-                                }
-                            });
-                            ui.menu_button("Simulation", |ui| {
-                                if ui.button("Timing & Experiments…").clicked() {
-                                    self.show_timing = true;
-                                    ui.close();
-                                }
-                                if ui.button("Step one tick").clicked() {
-                                    self.advance_exactly(1);
-                                    ui.close();
-                                }
-                                if ui
-                                    .button(if self.paused {
-                                        "Resume (Space)"
-                                    } else {
-                                        "Pause (Space)"
-                                    })
-                                    .clicked()
-                                {
-                                    self.toggle_pause();
-                                    ui.close();
-                                }
-                                if ui.button("Reset (R)").clicked() {
-                                    self.reset();
-                                    ui.close();
-                                }
-                                if ui.button("Randomize Behavior (B)").clicked() {
-                                    self.reroll(true, now);
-                                    ui.close();
-                                }
-                                if ui.button("View: Particles / Trails (M)").clicked() {
-                                    self.camera.toggle_mode();
-                                    self.held_view = None;
-                                }
-                                if ui.button("Webcam Input…").clicked() {
-                                    self.show_camera = true;
-                                    ui.close();
-                                }
-                                if ui.button("Auto-calibrate GPU").clicked() {
-                                    self.start_calibration();
-                                    ui.close();
-                                }
-                                if ui
-                                    .button(if self.rate_calibration.is_some() {
-                                        "Cancel Physics Rate Calibration"
-                                    } else {
-                                        "Auto-calibrate Physics Rate"
-                                    })
-                                    .clicked()
-                                {
-                                    self.start_rate_calibration();
-                                    ui.close();
-                                }
-                            });
-                            ui.menu_button("Help", |ui| {
-                                if ui.button("Guide and Controls (?)").clicked() {
-                                    self.help = true;
-                                    ui.close();
-                                }
-                                ui.hyperlink_to(
-                                    "Fluoddity by Jesse Gelders",
-                                    "https://fluoddity.com/",
-                                );
-                            });
+                                    self.command_menu(ui, ctx, now);
+                                },
+                            )
+                            .on_hover_text("More commands");
                         });
+                    });
                 });
             });
         if !self.preview_hovered {
             self.restore_preset_preview();
         }
+    }
+
+    fn playback_controls(&mut self, ui: &mut egui::Ui, narrow: bool) {
+        let width = if narrow { 44.0 } else { 36.0 };
+        if studio_ui::action(
+            ui,
+            if self.paused { Icon::Play } else { Icon::Pause },
+            if self.paused { "Resume" } else { "Pause" },
+            width,
+            true,
+        )
+        .on_hover_text("Pause or resume · Space")
+        .clicked()
+        {
+            self.toggle_pause();
+        }
+        if !narrow {
+            ui.add_enabled_ui(self.paused, |ui| {
+                if studio_ui::action(ui, Icon::Step, "Step one tick", width, false)
+                    .on_hover_text("Advance one tick while paused")
+                    .clicked()
+                {
+                    self.advance_exactly(1);
+                }
+            });
+        }
+    }
+
+    fn tool_menu(&mut self, ui: &mut egui::Ui) {
+        ui.label(
+            egui::RichText::new("INTERACT")
+                .size(10.0)
+                .color(studio_ui::MUTED),
+        );
+        for (tool, label) in [
+            (Tool::Select, "Select · 1"),
+            (Tool::Shove, "Shove · 2"),
+            (Tool::Walls, "Walls · 3"),
+            (Tool::Trails, "Trails · 4"),
+        ] {
+            if ui.selectable_label(self.tool == tool, label).clicked() {
+                self.select_tool(tool);
+                ui.close();
+            }
+        }
+        ui.separator();
+        if ui.button("Fit view · Home").clicked() {
+            self.camera.reset();
+            self.held_view = None;
+            ui.close();
+        }
+        if self.tool != Tool::Select && ui.button("Brush settings…").clicked() {
+            self.inspector_tab = InspectorTab::Brush;
+            self.show_panels = true;
+            ui.close();
+        }
+    }
+
+    fn preset_picker(&mut self, ui: &mut egui::Ui, ctx: &egui::Context, now: f64) {
+        let mut candidate = None;
+        let mut committed = false;
+        // A popup remembers its compact height. Let expanding a
+        // category grow the viewport instead of clipping its body.
+        let height =
+            (self.ui_layout(ctx).dock.top() - ctx.content_rect().top() - 24.0).clamp(100.0, 650.0);
+        ui.set_max_height(height);
+        egui::ScrollArea::vertical()
+            .max_height(height)
+            .show(ui, |ui| {
+                ui.add(egui::Hyperlink::from_label_and_url(
+                    "Fluoddity presets · Jesse Gelders",
+                    "https://fluoddity.com/",
+                )).on_hover_text("Core and Archive are original Fluoddity presets. Your saved presets are stored locally.");
+                ui.separator();
+                for category in ["Core", "Custom", "Archive"] {
+                    let count = if category == "Custom" {
+                        self.state.saves.len()
+                    } else {
+                        self.presets
+                            .iter()
+                            .filter(|p| p.category == category)
+                            .count()
+                    };
+                    if count == 0 {
+                        continue;
+                    }
+                    let title = if category == "Custom" {
+                        format!("Your saved presets ({count})")
+                    } else {
+                        format!("{category} · Fluoddity ({count})")
+                    };
+                    egui::CollapsingHeader::new(title)
+                        .id_salt(("preset category", category))
+                        .default_open(category != "Archive")
+                        .show(ui, |ui| {
+                            if category == "Custom" {
+                                let mut delete = None;
+                                for (name, p) in &self.state.saves {
+                                    ui.horizontal(|ui| {
+                                        let response = ui.button(name);
+                                        if response.hovered() {
+                                            self.preview_hovered = true;
+                                            candidate = Some(p.clone());
+                                        }
+                                        if response.clicked() {
+                                            candidate = Some(p.clone());
+                                            committed = true;
+                                        }
+                                        if ui
+                                            .small_button("×")
+                                            .on_hover_text("Delete this save")
+                                            .clicked()
+                                        {
+                                            delete = Some(name.clone());
+                                        }
+                                    });
+                                }
+                                if let Some(name) = delete {
+                                    self.state.saves.remove(&name);
+                                    self.save_now = true;
+                                }
+                            } else {
+                                for preset in &self.presets {
+                                    if preset.category != category {
+                                        continue;
+                                    }
+                                    let response = ui.button(preset.name);
+                                    if response.hovered() {
+                                        self.preview_hovered = true;
+                                        candidate = Some(preset.project.clone());
+                                    }
+                                    if response.clicked() {
+                                        candidate = Some(preset.project.clone());
+                                        committed = true;
+                                    }
+                                }
+                            }
+                        });
+                }
+            });
+        if let Some(p) =
+            candidate.filter(|_| self.recorder.is_none() && self.pending_export.is_none())
+        {
+            if committed {
+                self.load(p, "Load Preset", now);
+                ui.close();
+            } else if p != self.state.project
+                && p.config().mode() == self.state.project.config().mode()
+            {
+                self.preview_project(p);
+            } else if p.config().mode() != self.state.project.config().mode() {
+                self.restore_preset_preview();
+            } else {
+                self.cancel_pending_preview();
+            }
+        }
+    }
+
+    fn command_menu(&mut self, ui: &mut egui::Ui, ctx: &egui::Context, now: f64) {
+        ui.menu_button("File", |ui| {
+            ui.menu_button("Presets", |ui| self.preset_picker(ui, ctx, now));
+            ui.menu_button("Save", |ui| {
+                ui.text_edit_singleline(&mut self.save_name);
+                if ui
+                    .add_enabled(self.can_save, egui::Button::new("Save as…"))
+                    .clicked()
+                {
+                    let name = crate::export::sanitize_name(&self.save_name);
+                    if !name.is_empty() {
+                        let mut p = self.state.project.clone();
+                        p.name = name.clone();
+                        self.state.saves.insert(name.clone(), p);
+                        self.notice = format!("Saving {name}…");
+                        self.save_now = true;
+                        ui.close();
+                    }
+                }
+            });
+            if ui.button("Import / Export JSON…").clicked() {
+                self.transfer = true;
+                self.transfer_text = self.state.project.to_json().unwrap_or_default();
+                ui.close();
+            }
+            if ui.button("Download JSON").clicked() {
+                if let Ok(text) = self.state.project.to_json() {
+                    self.notice = download(
+                        &format!("{}.json", safe_name(&self.state.project.name)),
+                        text.as_bytes(),
+                        "application/json",
+                    )
+                    .unwrap_or_else(|e| e.to_string());
+                }
+                ui.close();
+            }
+            if ui
+                .add_enabled(
+                    !self.state.saves.is_empty(),
+                    egui::Button::new("Export Custom Saves (ZIP)"),
+                )
+                .clicked()
+            {
+                self.notice = crate::export::export_zip(&self.state.saves)
+                    .and_then(|bytes| {
+                        download(
+                            "Primordial-Soup-Custom-Saves.zip",
+                            &bytes,
+                            "application/zip",
+                        )
+                    })
+                    .unwrap_or_else(|e| e.to_string());
+                ui.close();
+            }
+            if ui.button("Screenshot (P)").clicked() {
+                self.show_capture = true;
+                self.capture_qr = false;
+                self.capture_clipboard = false;
+                ui.close();
+            }
+        });
+        ui.menu_button("Share", |ui| {
+            if ui.button("Copy Share Link (Shift+C)").clicked() {
+                self.share(ctx);
+                ui.close();
+            }
+            if ui.button("Open Share Link (Shift+V)…").clicked() {
+                self.transfer = true;
+                self.transfer_text.clear();
+                ui.close();
+            }
+            if ui.button("Save Image (P)").clicked() {
+                self.show_capture = true;
+                self.capture_qr = false;
+                self.capture_clipboard = false;
+                ui.close();
+            }
+            if ui.button("Copy Image with QR (Shift+P)…").clicked() {
+                self.show_capture = true;
+                self.capture_qr = true;
+                self.capture_clipboard = true;
+                ui.close();
+            }
+            if ui.button("Project Link Settings…").clicked() {
+                self.show_link = true;
+                ui.close();
+            }
+            #[cfg(target_arch = "wasm32")]
+            if ui.button("Import Image with QR…").clicked() {
+                crate::web::import_image(self.incoming.clone(), ctx.clone());
+                ui.close();
+            }
+            if ui.button("Record World (Video)…").clicked() {
+                if self.recorder.is_none() && self.pending_export.is_none() && !self.show_recording
+                {
+                    self.state.recording_settings.physics_steps = self.state.prefs.physics_steps;
+                    self.state.recording_settings.motion_blur_samples =
+                        self.state.prefs.motion_blur_samples;
+                }
+                self.show_recording = true;
+                ui.close();
+            }
+        });
+        ui.menu_button("History", |ui| {
+            if ui
+                .add_enabled(
+                    self.history.can_undo(),
+                    egui::Button::new(format!("Undo {} (Z)", self.history.undo_label())),
+                )
+                .clicked()
+            {
+                self.undo(false);
+                ui.close();
+            }
+            if ui
+                .add_enabled(
+                    self.history.can_redo(),
+                    egui::Button::new(format!("Redo {} (Shift+Z)", self.history.redo_label())),
+                )
+                .clicked()
+            {
+                self.undo(true);
+                ui.close();
+            }
+            if ui.button("Set Checkpoint (C)").clicked() {
+                self.checkpoint();
+            }
+            let checkpoints = self.state.checkpoints.clone();
+            for (i, p) in checkpoints.into_iter().enumerate().rev() {
+                if ui.button(format!("{} · {}", i + 1, p.name)).clicked() {
+                    self.load(p, "Load Checkpoint", now);
+                    ui.close();
+                }
+            }
+        });
+        ui.menu_button("Editor", |ui| {
+            if ui.checkbox(&mut self.show_panels, "Inspector").changed() {
+                ui.close();
+            }
+            ui.checkbox(&mut self.debug, "Diagnostic overlay");
+            if ui.button("Reset View (Home)").clicked() {
+                self.camera.reset();
+            }
+            if ui.button("Reset Preferences").clicked() {
+                if let Err(e) = self.rebuild(Preferences::default()) {
+                    self.notice = e.to_string();
+                }
+                self.save_now = true;
+            }
+            if self.state.prefs.strong_logging {
+                ui.separator();
+                ui.label(format!(
+                    "{} archive events this session",
+                    self.archive_count
+                ));
+                if ui.button("Export State Archive (JSON)").clicked() {
+                    #[cfg(target_arch = "wasm32")]
+                    crate::web::export_archive(self.notices.clone(), ctx.clone());
+                    #[cfg(not(target_arch = "wasm32"))]
+                    if let Some(writer) = &self.archive_writer {
+                        if let Err(e) = writer.export() {
+                            self.notice = e.to_string();
+                        }
+                    }
+                    ui.close();
+                }
+                if ui.button("Clear State Archive").clicked() {
+                    #[cfg(target_arch = "wasm32")]
+                    crate::web::clear_archive(self.notices.clone(), ctx.clone());
+                    #[cfg(not(target_arch = "wasm32"))]
+                    if let Some(writer) = &self.archive_writer {
+                        if let Err(e) = writer.clear() {
+                            self.notice = e.to_string();
+                        }
+                    }
+                    self.archive_cursor = None;
+                    self.archive_count = 0;
+                    ui.close();
+                }
+            }
+        });
+        ui.menu_button("Simulation", |ui| {
+            if ui.button("Timing & Experiments…").clicked() {
+                self.show_timing = true;
+                ui.close();
+            }
+            if ui.button("Step one tick").clicked() {
+                self.advance_exactly(1);
+                ui.close();
+            }
+            if ui
+                .button(if self.paused {
+                    "Resume (Space)"
+                } else {
+                    "Pause (Space)"
+                })
+                .clicked()
+            {
+                self.toggle_pause();
+                ui.close();
+            }
+            if ui.button("Reset (R)").clicked() {
+                self.reset();
+                ui.close();
+            }
+            if ui.button("Randomize Behavior (B)").clicked() {
+                self.reroll(true, now);
+                ui.close();
+            }
+            if ui.button("View: Particles / Trails (M)").clicked() {
+                self.camera.toggle_mode();
+                self.held_view = None;
+            }
+            if ui.button("Webcam Input…").clicked() {
+                self.show_camera = true;
+                ui.close();
+            }
+            if ui.button("Auto-calibrate GPU").clicked() {
+                self.start_calibration();
+                ui.close();
+            }
+            if ui
+                .button(if self.rate_calibration.is_some() {
+                    "Cancel Physics Rate Calibration"
+                } else {
+                    "Auto-calibrate Physics Rate"
+                })
+                .clicked()
+            {
+                self.start_rate_calibration();
+                ui.close();
+            }
+        });
+        ui.menu_button("Help", |ui| {
+            if ui.button("Guide and Controls (?)").clicked() {
+                self.help = true;
+                ui.close();
+            }
+            ui.hyperlink_to("Fluoddity by Jesse Gelders", "https://fluoddity.com/");
+        });
     }
 
     fn restore_preset_preview(&mut self) {
@@ -2695,10 +2852,11 @@ impl SoupApp {
             || self.pending_export.is_some()
             || self.calibration.is_some()
             || self.rate_calibration.is_some();
-        egui::Window::new("Network Settings")
+        studio_ui::window("Network Settings", self.ui_layout(ctx).dialogs)
             .open(&mut open).collapsible(false).resizable(false)
             .default_pos([20.0, 140.0]).default_width(320.0)
             .show(ctx, |ui| {
+                studio_ui::dialog_controls(ui);
                 ui.add_enabled_ui(!locked, |ui| {
                     let c = next.config_mut();
                     let modern = c.mode()!=crate::network::Mode::Fourier && c.network_revision()>=3;
@@ -2725,156 +2883,157 @@ impl SoupApp {
         }
     }
 
-    fn toolbar(&mut self, ctx: &egui::Context, now: f64) {
-        if self.comparison_busy() || self.pending_project.is_some() {
+    fn toolbar(&mut self, ctx: &egui::Context, _now: f64) {
+        if self.panels_hidden || self.comparison_busy() || self.pending_project.is_some() {
             return;
         }
-        if self.panels_hidden {
+        let layout = self.ui_layout(ctx);
+        if layout.narrow && self.show_panels {
             return;
         }
-        let narrow = ctx.content_rect().width() < 900.0;
-        let top = if ctx.content_rect().width() < 1550.0 {
-            34.0
-        } else {
-            8.0
-        };
-        let area = egui::Area::new("mutation toolbar".into());
-        let area = if narrow {
-            area.fixed_pos([8.0, top])
-                .default_width(ctx.content_rect().width() - 24.0)
-        } else {
-            area.anchor(egui::Align2::CENTER_TOP, [0.0, top])
-        };
-        area.order(egui::Order::Foreground).show(ctx, |ui| {
-            egui::Frame::popup(ui.style()).show(ui, |ui| {
-                ui.set_max_width((ctx.content_rect().width() - 24.0).max(260.0));
-                if narrow {
-                    ui.spacing_mut().slider_width = 70.0;
-                }
-                if self.mobile() {
-                    ui.spacing_mut().interact_size.y = 36.0;
-                    ui.spacing_mut().item_spacing.y = 8.0;
-                }
-                ui.horizontal_wrapped(|ui| {
-                    let mut mode=self.state.project.config().mode();
-                    if ui.button("Network").clicked(){self.show_network_settings=true;}
-                    for m in crate::network::Mode::ALL {
-                        ui.selectable_value(&mut mode,m,m.label()).on_hover_text("Restores this mode's rule and resets particles, trails and memory. Shared physics settings stay in place.");
-                    }
-                    if mode!=self.state.project.config().mode() {
-                        let mut p=self.state.project.clone();
-                        p.config_mut().switch_mode(mode,random_seed());
-                        self.set_project(p,"Switch Network",true,now,None);
-                    }
-                    let c=self.state.project.config();
-                    let rev=c.network_revision();
-                    ui.small(format!("{} parameters · {}",c.network_parameters(),if c.mode()==crate::network::Mode::Fourier {"Fourier sensors"} else if rev>=3 {"flow + occupancy + speed"} else {"legacy sensors; B starts new model"}));
-                    for (count, label) in [(1, "1"), (4, "4"), (16, "16")] {
-                        if ui
-                            .button(label)
-                            .on_hover_text(format!("{count} cohorts"))
-                            .clicked()
-                        {
-                            self.choose_layout(count, now);
-                        }
-                    }
-                    let before = self.state.project.clone();
-                    let c = self.state.project.config_mut();
-                    ui.add_enabled(
-                        c.initial_conditions == 0,
-                        egui::Checkbox::new(&mut c.cohort_fences, "Fences"),
-                    );
-                    ui.add(
-                        egui::Slider::new(&mut c.mutation_scale, 0.0..=0.6).text("Mutation Scale"),
-                    );
-                    if before != self.state.project {
-                        let next = self.state.project.clone();
-                        self.state.project = before;
-                        self.set_project(
-                            next,
-                            "Mutation Scale / Fences",
-                            false,
-                            now,
-                            Some("mutation"),
-                        );
-                    }
-                    if ui.button("Reroll (F)").clicked() {
-                        self.reroll(false, now);
-                    }
-                    if ui.button("Reset (R)").clicked() {
-                        self.reset();
-                    }
-                    egui::ComboBox::from_id_salt("tool")
-                        .selected_text(self.tool.label())
-                        .show_ui(ui, |ui| {
-                            for t in [Tool::Select, Tool::Shove, Tool::Walls, Tool::Trails] {
-                                ui.selectable_value(&mut self.tool, t, t.label());
-                            }
-                        });
-                    if ui.button("Controls").clicked() {
-                        self.show_panels = !self.show_panels;
-                    }
-                });
-                ui.horizontal(|ui|{
-                    ui.label("Style");
-                    ui.add_enabled_ui(self.pending_renderer.is_none() && (self.recorder.is_none() && self.pending_export.is_none()),|ui|{
-                        let before=self.state.prefs.cells.clone();
-                        ui.selectable_value(&mut self.state.prefs.cells.style,crate::cells::Style::Classic,"Classic");
-                        ui.selectable_value(&mut self.state.prefs.cells.style,crate::cells::Style::Cells,"Cells");
-                        if self.state.prefs.cells.style==crate::cells::Style::Cells {
-                            ui.separator();
-                            ui.selectable_value(&mut self.state.prefs.cells.theme,crate::cells::Theme::Dark,"Dark");
-                            ui.selectable_value(&mut self.state.prefs.cells.theme,crate::cells::Theme::Light,"Light");
-                        }
-                        if self.state.prefs.cells!=before {self.held_view=None;self.state_dirty=true;}
-                    });
-                    if self.pending_renderer.is_some(){ui.small("Preparing appearance…");}
-                    if self.failed_appearance.is_some() && ui.small_button("Retry appearance").clicked(){
-                        if let Some(key)=self.failed_appearance.take(){self.state.prefs.cells.style=key.style;self.state.prefs.cells.detailed=key.detailed;self.state.prefs.cells.fast=key.fast;self.held_view=None;self.state_dirty=true;}
-                    }
-                    if self.camera.trail_mode && self.state.prefs.cells.style==crate::cells::Style::Cells{ui.small("Cells appears in Particles view");}
-                });
-                if self.tool == Tool::Select {
+        egui::Area::new("scene identity".into())
+            .order(egui::Order::Middle)
+            .fixed_pos(layout.identity.min)
+            .movable(false)
+            .show(ctx, |ui| {
+                ui.set_width(layout.identity.width());
+                ui.spacing_mut().item_spacing = egui::vec2(6.0, 2.0);
+                if let Some(pick) = self.highlighted.as_ref().filter(|_| !self.show_panels) {
+                    let cohort = pick.cohort as u32 + 1;
                     ui.horizontal(|ui| {
-                        ui.small(self.highlighted.as_ref().map_or(
-                            "Left click a particle to select its cohort".to_owned(),
-                            |p| {
-                                format!(
-                                    "Cohort {} selected · click again or Enter to adopt",
-                                    p.cohort as u32 + 1
-                                )
-                            },
-                        ));
+                        ui.label(egui::RichText::new(format!("Cohort {cohort}")).size(13.0));
                         if ui
-                            .add_enabled(
-                                self.highlighted.is_some(),
-                                egui::Button::new("Adopt / Children (Enter)"),
-                            )
+                            .button("Adopt")
+                            .on_hover_text("Create the next generation · Enter")
                             .clicked()
                         {
                             self.confirm_selection();
                         }
                         if ui
-                            .add_enabled(self.history.can_undo(), egui::Button::new("Undo (Z)"))
+                            .add_enabled(self.history.can_undo(), egui::Button::new("Undo"))
                             .clicked()
                         {
                             self.undo(false);
                         }
                     });
+                    return;
                 }
-                if self.paused {
-                    ui.horizontal(|ui| {
-                        if ui.button("Step 1").clicked() {
-                            self.advance_exactly(1);
-                        }
-                        if ui.button("Timing / Advance N…").clicked() {
-                            self.show_timing = true;
-                        }
-                        ui.small(format!("Tick {}", self.clock.completed_ticks()));
-                    });
+                ui.add(
+                    egui::Label::new(
+                        egui::RichText::new(&self.state.project.name)
+                            .size(14.0)
+                            .color(studio_ui::TEXT),
+                    )
+                    .truncate(),
+                );
+                ui.label(
+                    egui::RichText::new(format!(
+                        "{} · {} particles",
+                        self.state.project.config().mode().label(),
+                        crate::performance::grouped(u64::from(self.gpu.sizing.entity_count))
+                    ))
+                    .size(11.0)
+                    .color(studio_ui::MUTED),
+                );
+            });
+    }
+
+    fn world_controls(&mut self, ui: &mut egui::Ui) -> Option<InspectorAction> {
+        let mut action = None;
+        ui.label(
+            egui::RichText::new("BEHAVIOR")
+                .size(10.0)
+                .color(studio_ui::MUTED),
+        );
+        let config = self.state.project.config();
+        let mut mode = config.mode();
+        ui.horizontal(|ui| {
+            for candidate in crate::network::Mode::ALL {
+                ui.selectable_value(&mut mode, candidate, candidate.label())
+                    .on_hover_text(
+                        "Restores this model's rule and restarts particles, trails, and memory.",
+                    );
+            }
+            if ui.small_button("Tune…").clicked() {
+                self.show_network_settings = true;
+            }
+        });
+        if mode != config.mode() {
+            action = Some(InspectorAction::Mode(mode));
+        }
+        ui.small(format!(
+            "{} parameters · {}",
+            config.network_parameters(),
+            if config.mode() == crate::network::Mode::Fourier {
+                "vector sensing"
+            } else if config.network_revision() >= 3 {
+                "flow, occupancy & speed"
+            } else {
+                "legacy sensors"
+            }
+        ));
+        ui.add_space(5.0);
+        ui.label("Cohort layout · restarts the world");
+        ui.horizontal(|ui| {
+            for (count, label) in [(1, "Single"), (4, "2 × 2"), (16, "4 × 4")] {
+                if ui
+                    .selectable_label(config.cohorts == count, label)
+                    .on_hover_text(format!("Restart with {count} cohorts"))
+                    .clicked()
+                {
+                    action = Some(InspectorAction::Layout(count));
+                }
+            }
+        });
+        let mut mutation = config.mutation_scale;
+        let fences = config.cohort_fences;
+        controls::slider(
+            ui,
+            "toolbar_mutation",
+            "Mutation scale",
+            &mut mutation,
+            0.0,
+            0.6,
+            1.0,
+            false,
+            false,
+            "Variation around the parent behavior. 0 keeps every cohort identical.",
+        );
+        if mutation != config.mutation_scale || fences != config.cohort_fences {
+            action = Some(InspectorAction::Mutation(mutation, fences));
+        }
+        ui.horizontal(|ui| {
+            let mut trails = self.camera.trail_mode;
+            ui.label("View");
+            ui.selectable_value(&mut trails, false, "Particles");
+            ui.selectable_value(&mut trails, true, "Trails");
+            if trails != self.camera.trail_mode {
+                self.camera.toggle_mode();
+                self.held_view = None;
+            }
+        });
+        if let Some(pick) = self.highlighted.as_ref() {
+            ui.separator();
+            ui.label(format!("Cohort {} selected", pick.cohort as u32 + 1));
+            ui.horizontal(|ui| {
+                if ui
+                    .button("Create next generation")
+                    .on_hover_text("Adopt this cohort as the parent behavior")
+                    .clicked()
+                {
+                    action = Some(InspectorAction::Adopt);
+                }
+                if ui
+                    .add_enabled(self.history.can_undo(), egui::Button::new("Undo"))
+                    .clicked()
+                {
+                    action = Some(InspectorAction::Undo);
                 }
             });
-        });
+        } else {
+            ui.small("Select a particle to inspect its cohort.");
+        }
+        action
     }
 
     fn panels(&mut self, ctx: &egui::Context, now: f64) {
@@ -2886,18 +3045,6 @@ impl SoupApp {
         }
         let before = self.state.project.clone();
         let old_prefs = self.state.prefs.clone();
-        egui::Window::new("Project")
-            .default_pos([12.0, 75.0])
-            .default_width(295.0)
-            .max_width((ctx.content_rect().width() - 24.0).max(260.0))
-            .show(ctx, |ui| {
-                ui.strong(&self.state.project.name);
-                egui::ScrollArea::vertical()
-                    .max_height(620.0)
-                    .show(ui, |ui| {
-                        controls::project_panel(ui, &mut self.state.project, &mut self.state.prefs)
-                    });
-            });
         let hints = controls::PerformanceHints {
             band: self.fps.band,
             physics_ms_per_step: self.stage_sample().and_then(|s| s.physics_ms_per_step()),
@@ -2906,61 +3053,179 @@ impl SoupApp {
                 == crate::simulation::SimulationMode::FixedRate)
                 .then_some(self.state.simulation.ticks_per_second),
         };
-        egui::Window::new("Preferences")
-            .default_pos([
-                if ctx.content_rect().width() < 850.0 {
-                    12.0
-                } else {
-                    ctx.content_rect().width() - 310.0
-                },
-                75.0,
-            ])
-            .default_width(295.0)
-            .max_width((ctx.content_rect().width() - 24.0).max(260.0))
+        let mut layout = self.ui_layout(ctx);
+        if layout.narrow && !self.notice.is_empty() {
+            layout.inspector.max.y -= if self.calibration.is_some() {
+                72.0
+            } else {
+                36.0
+            };
+        }
+        let mut command = None;
+        egui::Area::new("world inspector".into())
+            .order(egui::Order::Middle)
+            .fixed_pos(layout.inspector.min)
+            .movable(false)
             .show(ctx, |ui| {
-                egui::ScrollArea::vertical()
-                    .max_height(520.0)
-                    .show(ui, |ui| {
-                        controls::preferences_panel(ui, &mut self.state.prefs, &hints)
+                studio_ui::surface().show(ui, |ui| {
+                    ui.set_width((layout.inspector.width() - 24.0).max(0.0));
+                    ui.set_max_height((layout.inspector.height() - 24.0).max(0.0));
+                    ui.horizontal(|ui| {
+                        ui.label(
+                            egui::RichText::new("Inspector")
+                                .size(14.0)
+                                .color(studio_ui::TEXT)
+                                .strong(),
+                        );
+                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                            if studio_ui::action(
+                                ui,
+                                Icon::Close,
+                                "Close inspector",
+                                if layout.narrow { 44.0 } else { 32.0 },
+                                false,
+                            )
+                            .clicked()
+                            {
+                                self.show_panels = false;
+                            }
+                        });
                     });
-                ui.separator();
-                ui.small(format!(
-                    "{} · {} particles",
-                    self.rs.adapter.get_info().name,
-                    self.gpu.sizing.entity_count
-                ));
-                egui::ComboBox::from_id_salt("workgroup")
-                    .selected_text(format!("Workgroup {}", self.workgroup))
-                    .show_ui(ui, |ui| {
-                        for n in [64, 128, 256].into_iter().filter(|n| {
-                            *n <= crate::gpu::default_workgroup(&self.rs.device.limits())
-                        }) {
-                            ui.selectable_value(&mut self.workgroup, n, n.to_string());
+                    ui.horizontal(|ui| {
+                        for tab in [
+                            InspectorTab::World,
+                            InspectorTab::Appearance,
+                            InspectorTab::Settings,
+                            InspectorTab::Brush,
+                        ] {
+                            if tab == InspectorTab::Brush && self.tool == Tool::Select {
+                                continue;
+                            }
+                            let selected = self.inspector_tab == tab;
+                            let response = ui
+                                .scope(|ui| {
+                                    ui.visuals_mut().selection.bg_fill = Color32::TRANSPARENT;
+                                    ui.selectable_label(
+                                        selected,
+                                        egui::RichText::new(tab.label()).color(if selected {
+                                            studio_ui::TEXT
+                                        } else {
+                                            studio_ui::MUTED
+                                        }),
+                                    )
+                                })
+                                .inner;
+                            if response.clicked() {
+                                self.inspector_tab = tab;
+                            }
+                            if self.inspector_tab == tab {
+                                ui.painter().hline(
+                                    response.rect.x_range().shrink(7.0),
+                                    response.rect.bottom(),
+                                    egui::Stroke::new(1.5, studio_ui::ACCENT),
+                                );
+                            }
                         }
                     });
-            });
-        if matches!(self.tool, Tool::Shove | Tool::Walls | Tool::Trails) {
-            egui::Window::new("Drawing")
-                .default_pos([12.0, 500.0])
-                .default_width(295.0)
-                .show(ctx, |ui| {
-                    controls::drawing_panel(ui, &mut self.state.prefs);
-                    if matches!(self.tool, Tool::Walls | Tool::Trails)
-                        && ui
-                            .button(if self.tool == Tool::Walls {
-                                "Clear Walls"
-                            } else {
-                                "Clear Trails"
-                            })
-                            .clicked()
-                    {
-                        self.clear_layer = Some(u32::from(self.tool == Tool::Trails));
-                    }
-                    ui.small(
-                        "Left drag draws · right drag erases · Shift+click joins straight lines",
-                    );
+                    ui.separator();
+                    egui::ScrollArea::vertical()
+                        .id_salt(self.inspector_tab.label())
+                        .max_height(
+                            (layout.inspector.bottom() - ui.cursor().top() - 12.0).max(24.0),
+                        )
+                        .auto_shrink([false, false])
+                        .show(ui, |ui| match self.inspector_tab {
+                            InspectorTab::World => {
+                                command = self.world_controls(ui);
+                                ui.separator();
+                                controls::project_panel(
+                                    ui,
+                                    &mut self.state.project,
+                                    &mut self.state.prefs,
+                                );
+                            }
+                            InspectorTab::Appearance => {
+                                let ready = self.pending_renderer.is_none()
+                                    && self.recorder.is_none()
+                                    && self.pending_export.is_none();
+                                controls::appearance_panel(
+                                    ui,
+                                    &mut self.state.prefs,
+                                    &hints,
+                                    ready,
+                                );
+                                if self.pending_renderer.is_some() {
+                                    ui.label("Preparing appearance…");
+                                }
+                                if self.failed_appearance.is_some()
+                                    && ui.button("Retry appearance").clicked()
+                                {
+                                    if let Some(key) = self.failed_appearance.take() {
+                                        self.state.prefs.cells.style = key.style;
+                                        self.state.prefs.cells.detailed = key.detailed;
+                                        self.state.prefs.cells.fast = key.fast;
+                                        self.held_view = None;
+                                        self.state_dirty = true;
+                                    }
+                                }
+                                if self.camera.trail_mode {
+                                    ui.small(
+                                        "Switch to Particles view to see the cell appearance.",
+                                    );
+                                }
+                            }
+                            InspectorTab::Settings => {
+                                controls::preferences_panel(ui, &mut self.state.prefs, &hints);
+                                if ui.button("Timing & experiments…").clicked() {
+                                    self.show_timing = true;
+                                }
+                                if ui.button("Auto-calibrate physics rate").clicked() {
+                                    self.start_rate_calibration();
+                                }
+                                egui::CollapsingHeader::new("Device").show(ui, |ui| {
+                                    ui.small(self.rs.adapter.get_info().name);
+                                    ui.small(format!(
+                                        "{} particles",
+                                        crate::performance::grouped(u64::from(
+                                            self.gpu.sizing.entity_count
+                                        ))
+                                    ));
+                                    egui::ComboBox::from_id_salt("workgroup")
+                                        .selected_text(format!("Workgroup {}", self.workgroup))
+                                        .show_ui(ui, |ui| {
+                                            for n in [64, 128, 256].into_iter().filter(|n| {
+                                                *n <= crate::gpu::default_workgroup(
+                                                    &self.rs.device.limits(),
+                                                )
+                                            }) {
+                                                ui.selectable_value(
+                                                    &mut self.workgroup,
+                                                    n,
+                                                    n.to_string(),
+                                                );
+                                            }
+                                        });
+                                });
+                            }
+                            InspectorTab::Brush => {
+                                ui.label(egui::RichText::new(self.tool.label()).strong());
+                                ui.small("Drag to paint · right-drag to erase");
+                                controls::drawing_panel(ui, &mut self.state.prefs);
+                                if matches!(self.tool, Tool::Walls | Tool::Trails)
+                                    && ui
+                                        .button(if self.tool == Tool::Walls {
+                                            "Clear walls"
+                                        } else {
+                                            "Clear trails"
+                                        })
+                                        .clicked()
+                                {
+                                    self.clear_layer = Some(u32::from(self.tool == Tool::Trails));
+                                }
+                            }
+                        });
                 });
-        }
+            });
         if self.state.project != before {
             let next = self.state.project.clone();
             let layout = next.config().cohorts != before.config().cohorts
@@ -3043,6 +3308,30 @@ impl SoupApp {
                 }
             }
         }
+        if let Some(command) = command {
+            match command {
+                InspectorAction::Mode(mode) => {
+                    let mut project = self.state.project.clone();
+                    project.config_mut().switch_mode(mode, random_seed());
+                    self.set_project(project, "Switch Network", true, now, None);
+                }
+                InspectorAction::Layout(count) => self.choose_layout(count, now),
+                InspectorAction::Mutation(scale, fences) => {
+                    let mut project = self.state.project.clone();
+                    project.config_mut().mutation_scale = scale;
+                    project.config_mut().cohort_fences = fences;
+                    self.set_project(
+                        project,
+                        "Mutation Scale / Fences",
+                        false,
+                        now,
+                        Some("mutation"),
+                    );
+                }
+                InspectorAction::Adopt => self.confirm_selection(),
+                InspectorAction::Undo => self.undo(false),
+            }
+        }
     }
     fn refresh_texture(&mut self) {
         self.pending_renderer = None;
@@ -3064,8 +3353,10 @@ impl SoupApp {
         }
         self.feature_windows(ctx, now);
         if self.help {
-            egui::Window::new("Guide and Controls").open(&mut self.help).default_width(480.0).show(ctx,|ui| {
-            ui.label("Particles leave vector trails and sense them with two sensors. A small Fourier network turns those readings into force, strafe and color. Select interesting cohorts and generate children to explore emergent behavior.");
+            studio_ui::window("Guide and Controls", self.ui_layout(ctx).dialogs).open(&mut self.help).default_width(480.0)
+.show(ctx,|ui| {
+            studio_ui::dialog_controls(ui);
+            ui.label("Particles leave vector trails and sense them with two sensors. Fourier, MLP, or GRU rules turn those readings into motion and color. Select interesting cohorts and generate children to explore emergent behavior.");
             ui.separator();
             for text in ["Space: pause/resume · R: reset · F: reroll · B: randomize behavior", "1: Select · 2: Shove · 3: Walls · 4: Trails", "Click: highlight cohort · click again / Enter: adopt its rule", "Z / Shift+Z: undo/redo · C / V: checkpoint/load", "M: particles/trails · G: color by cohort · Home: reset view", "Physics Rate: , / . step through 1, 5, 10, …, 60", "[ / ]: lower/raise Mutation Scale by 0.01 (0–0.6)", "X: hide/show all panels", "Wheel: zoom at cursor · middle drag / WASD: pan · Q/E: zoom", "Right drag: erase field · Shift+drag: line · P: screenshot", "Shift+C: copy share link · Shift+V: open share link", "Drop a JSON preset on the canvas to import it"] { ui.label(text); }
             ui.separator(); ui.hyperlink_to("Original Fluoddity source and MIT license","https://github.com/aphid91/Fluoddity-Web");
@@ -3074,10 +3365,11 @@ impl SoupApp {
         if self.transfer {
             let mut open = true;
             let mut import = false;
-            egui::Window::new("Import / Export").open(&mut open).default_width(630.0).show(ctx,|ui| {
+            studio_ui::window("Import / Export", self.ui_layout(ctx).dialogs).open(&mut open).default_width(630.0).show(ctx,|ui| {
+                studio_ui::dialog_controls(ui);
                 ui.label("Paste a JSON preset, share link or custom-save backup. Drop a JSON, ZIP or QR image onto the canvas to import a file.");
                 ui.add(egui::TextEdit::multiline(&mut self.transfer_text).desired_rows(14).desired_width(f32::INFINITY).code_editor());
-                ui.horizontal(|ui| { if ui.button("Import").clicked() { import=true; }
+                ui.horizontal_wrapped(|ui| { if ui.button("Import").clicked() { import=true; }
                     if ui.button("Copy").clicked() { ctx.copy_text(self.transfer_text.clone()); }
                     if ui.button("Current JSON").clicked() { self.transfer_text=self.state.project.to_json().unwrap_or_default(); }
                     if self.state.project.extended() && self.state.project.config().mode()==crate::network::Mode::Fourier && ui.button("Fourier v9 JSON (drops other modes)").clicked() {
@@ -3102,11 +3394,12 @@ impl SoupApp {
         if self.show_camera {
             let mut open = true;
             let mut setup = false;
-            egui::Window::new("Webcam Input")
+            studio_ui::window("Webcam Input", self.ui_layout(ctx).dialogs)
                 .open(&mut open)
                 .default_width(360.0)
                 .vscroll(true)
                 .show(ctx, |ui| {
+                    studio_ui::dialog_controls(ui);
                     self.webcam.ui(ui);
                     ui.separator();
                     ui.label("Works best with Random initial conditions and a high Hazard Rate.");
@@ -3130,11 +3423,12 @@ impl SoupApp {
             let mut open = true;
             let mut start = false;
             let mut discard = false;
-            egui::Window::new("Record World")
+            studio_ui::window("Record World", self.ui_layout(ctx).dialogs)
                 .open(&mut open)
                 .default_width(360.0)
                 .vscroll(true)
                 .show(ctx, |ui| {
+                    studio_ui::dialog_controls(ui);
                     if let Some(r) = self.recorder.as_mut() {
                         let progress = r.progress();
                         ui.label(format!(
@@ -3187,10 +3481,13 @@ impl SoupApp {
             self.stroke = Default::default();
             let mut open = true;
             let mut capture = None;
-            egui::Window::new("Screenshot").open(&mut open).default_width(350.0).show(ctx,|ui| {
+            studio_ui::window("Screenshot", self.ui_layout(ctx).dialogs).open(&mut open).default_width(350.0)
+                .default_pos([ctx.content_rect().center().x-175.0,(ctx.content_rect().height()-400.0).max(32.0)*0.5])
+.show(ctx,|ui| {
+                studio_ui::dialog_controls(ui);
                 ui.label("Drag on the canvas to select a crop. Editor controls and brush overlays are excluded.");
                 if let Some([w, h]) = ctx.data_mut(|d| d.get_temp::<[u32; 2]>(egui::Id::new(controls::PHYSICAL_CANVAS_ID))).filter(|p| *p != self.render.size) {
-                    ui.small(format!("Render Scale: images are saved at the working resolution, {} × {} of the {w} × {h} screen. Choose 1× under Display for full resolution.", self.render.size[0], self.render.size[1]));
+                    ui.small(format!("Render Scale: images are saved at the working resolution, {} × {} of the {w} × {h} screen. Choose 1× in Inspector → Settings → Performance for full resolution.", self.render.size[0], self.render.size[1]));
                 }
                 ui.add(egui::Slider::new(&mut self.capture_crop[0],1..=self.render.size[0]).text("Width"));
                 ui.add(egui::Slider::new(&mut self.capture_crop[1],1..=self.render.size[1]).text("Height"));
@@ -3211,10 +3508,11 @@ impl SoupApp {
         }
         if self.show_link {
             let mut open = true;
-            egui::Window::new("Project Link Settings")
+            studio_ui::window("Project Link Settings", self.ui_layout(ctx).dialogs)
                 .open(&mut open)
                 .default_width(340.0)
                 .show(ctx, |ui| {
+                    studio_ui::dialog_controls(ui);
                     ui.label("Project Name");
                     ui.text_edit_singleline(&mut self.link_name);
                     egui::ComboBox::from_id_salt("link splash")
@@ -3255,10 +3553,11 @@ impl SoupApp {
             let proposed = self.proposed.clone();
             let mut apply = false;
             let mut ignore = false;
-            egui::Window::new("Suggested Editor Settings")
+            studio_ui::window("Suggested Editor Settings", self.ui_layout(ctx).dialogs)
                 .collapsible(false)
                 .resizable(false)
                 .show(ctx, |ui| {
+                    studio_ui::dialog_controls(ui);
                     ui.label("This project link suggests these editor settings:");
                     for (label, value) in [
                         ("World Size", proposed.world_size.map(|v| v.to_string())),
@@ -3615,12 +3914,6 @@ impl SoupApp {
         self.state_dirty = true;
         self.refresh_texture();
         self.held_view = None;
-        self.notice = if pending.settings.style == crate::cells::Style::Cells {
-            "Cells appearance ready"
-        } else {
-            "Classic appearance ready"
-        }
-        .into();
     }
     fn draw_frame(
         &mut self,
@@ -4433,99 +4726,75 @@ impl eframe::App for SoupApp {
         self.dialogs(ctx, now);
         self.timing_window(ctx);
         self.network_settings_window(ctx, now);
+        let chrome = self.ui_layout(ctx);
         if self.panels_hidden {
-            let painter = ctx.layer_painter(egui::LayerId::new(
-                egui::Order::Foreground,
-                egui::Id::new("panels_hint"),
-            ));
-            let text = painter.layout_no_wrap(
-                "X for panels".into(),
-                egui::FontId::proportional(13.0),
-                Color32::from_gray(200),
-            );
-            let position =
-                ctx.content_rect().left_bottom() + egui::vec2(12.0, -12.0 - text.size().y);
-            painter.rect_filled(
-                Rect::from_min_size(position, text.size()).expand2(egui::vec2(5.0, 3.0)),
-                3.0,
-                Color32::from_black_alpha(160),
-            );
-            painter.galley(position, text, Color32::from_gray(200));
-        }
-        if !self.panels_hidden && self.state.prefs.show_fps_counter {
-            let dot = self.dot_state(now);
-            let badge = self.badge_text(dot);
-            let tooltip = self.performance_tooltip(dot);
-            egui::Area::new("fps".into())
-                .anchor(
-                    if ctx.content_rect().width() < 900.0 {
-                        egui::Align2::RIGHT_BOTTOM
-                    } else {
-                        egui::Align2::RIGHT_TOP
-                    },
-                    [
-                        -12.0,
-                        if ctx.content_rect().width() < 900.0 {
-                            -12.0
-                        } else {
-                            8.0
-                        },
-                    ],
-                )
-                .order(egui::Order::Foreground)
+            egui::Area::new("restore controls".into())
+                .order(egui::Order::Middle)
+                .anchor(egui::Align2::LEFT_BOTTOM, [chrome.margin, -chrome.margin])
                 .show(ctx, |ui| {
-                    egui::Frame::popup(ui.style()).show(ui, |ui| {
-                        ui.horizontal(|ui| {
-                            // One row even when anchored bottom-right on narrow screens.
-                            ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Extend);
-                            status_dot(ui, dot);
-                            if ui
-                                .button(egui::RichText::new(&badge).color(Color32::from_rgb(self.fps.band.badge_color()[0], self.fps.band.badge_color()[1], self.fps.band.badge_color()[2])))
-                                .on_hover_text(&tooltip)
-                                .clicked()
-                            {
-                                self.show_panels = true;
-                            }
-                        });
-                        if self.state.prefs.show_physics_slider {
-                            let rate_button = ui.button("▶▶").on_hover_text("Left-click: show Physics Rate. Right-click: calibrate/cancel against the current rendered project.");
-                            if rate_button.clicked() {
-                                self.state.prefs.physics_slider_open =
-                                    !self.state.prefs.physics_slider_open;
-                            }
-                            if rate_button.secondary_clicked() { self.start_rate_calibration(); }
-                            if self.state.prefs.physics_slider_open {
-                                let rate = ui.add(
-                                    egui::Slider::new(&mut self.state.prefs.physics_steps, 1..=60)
-                                        .vertical()
-                                        .text(egui::RichText::new("Physics Rate").color(Color32::from_rgb(self.fps.band.label_color()[0], self.fps.band.label_color()[1], self.fps.band.label_color()[2]))),
-                                );
-                                controls::observe_performance_drag(ctx, &rate);
-                            }
-                        }
-                    });
+                    if ui
+                        .add(
+                            egui::Button::new(egui::RichText::new("Show controls · X").size(11.0))
+                                .frame(false),
+                        )
+                        .clicked()
+                    {
+                        self.toggle_panels(ctx);
+                    }
                 });
         }
         if ctx.current_pass_index() == 0 && self.meter_live() {
             self.fps.update(now, controls::performance_dragging(ctx));
         }
         if !self.panels_hidden && !self.notice.is_empty() {
+            let bottom = ctx.content_rect().bottom() - chrome.dock.top() + 10.0;
+            let available = if self.show_panels && !chrome.narrow {
+                chrome.inspector.left() - chrome.margin * 2.0
+            } else {
+                ctx.content_rect().width() - chrome.margin * 2.0
+            };
             egui::Area::new("notice".into())
-                .anchor(egui::Align2::CENTER_BOTTOM, [0.0, -12.0])
-                .order(egui::Order::Foreground)
+                .anchor(egui::Align2::LEFT_BOTTOM, [chrome.margin, -bottom])
+                .order(egui::Order::Middle)
                 .show(ctx, |ui| {
-                    egui::Frame::popup(ui.style()).show(ui, |ui| {
+                    studio_ui::surface().inner_margin(6).show(ui, |ui| {
+                        ui.set_max_width((available - 12.0).clamp(120.0, 400.0));
+                        ui.spacing_mut().interact_size.y = 24.0;
+                        ui.spacing_mut().button_padding = egui::vec2(4.0, 2.0);
                         ui.horizontal(|ui| {
-                            ui.label(&self.notice);
-                            if ui.small_button("×").clicked() {
+                            let width = ui
+                                .painter()
+                                .layout_no_wrap(
+                                    self.notice.clone(),
+                                    egui::FontId::proportional(12.0),
+                                    studio_ui::TEXT,
+                                )
+                                .size()
+                                .x
+                                .min((available - 50.0).clamp(60.0, 360.0));
+                            ui.add_sized(
+                                [width, 24.0],
+                                egui::Label::new(egui::RichText::new(&self.notice).size(12.0))
+                                    .truncate(),
+                            )
+                            .on_hover_text(&self.notice);
+                            let dismiss = ui.button("×").on_hover_text("Dismiss message");
+                            dismiss.widget_info(|| {
+                                egui::WidgetInfo::labeled(
+                                    egui::WidgetType::Button,
+                                    ui.is_enabled(),
+                                    "Dismiss message",
+                                )
+                            });
+                            if dismiss.clicked() {
                                 self.notice.clear();
                             }
-                            if let Some(c) = self.calibration.as_mut() {
-                                if ui.button("Cancel calibration").clicked() {
-                                    c.cancel();
-                                }
-                            }
                         });
+                        if let Some(c) = self.calibration.as_mut() {
+                            if ui.button("Cancel calibration").clicked() {
+                                c.cancel();
+                            }
+                        }
                     });
                 });
         }
@@ -4612,11 +4881,20 @@ impl eframe::App for SoupApp {
             self.frames += 1;
         }
         self.save_pending(ctx, frame);
-        if !self.panels_hidden && self.debug {
-            egui::Area::new("debug".into()).anchor(egui::Align2::LEFT_BOTTOM,[12.0,-12.0]).show(ctx,|ui|{egui::Frame::popup(ui.style()).show(ui,|ui| {
-            ui.monospace(format!("{} · {:?}\n{} particles · {} × {} trails\nframe {} · substep {} · {} steps/frame\nblur {} samples · workgroup {}\nFrame interval {:.2} ms",self.rs.adapter.get_info().name,self.rs.adapter.get_info().backend,
-                self.gpu.sizing.entity_count,self.gpu.sizing.canvas[0],self.gpu.sizing.canvas[1],self.frames,self.gpu.frame_count,self.state.prefs.physics_steps,self.render.samples_taken,self.workgroup,elapsed*1000.0));
-        });});
+        if !self.panels_hidden
+            && self.debug
+            && !self.show_panels
+            && !chrome.compact
+            && self.highlighted.is_none()
+            && self.notice.is_empty()
+        {
+            egui::Area::new("debug".into()).order(egui::Order::Middle)
+                .fixed_pos(egui::pos2(chrome.identity.left(), chrome.identity.bottom() + 8.0)).show(ctx, |ui| {
+                    ui.set_max_width(360.0);
+                    ui.label(egui::RichText::new(format!("{} · {:?}\n{} particles · {} × {} trails\nframe {} · substep {} · {} steps/frame\nblur {} samples · workgroup {}\nFrame interval {:.2} ms",self.rs.adapter.get_info().name,self.rs.adapter.get_info().backend,
+                        self.gpu.sizing.entity_count,self.gpu.sizing.canvas[0],self.gpu.sizing.canvas[1],self.frames,self.gpu.frame_count,self.state.prefs.physics_steps,self.render.samples_taken,self.workgroup,elapsed*1000.0))
+                        .monospace().size(11.0).color(studio_ui::MUTED));
+                });
         }
         // The status line is shown and read only on `?debug` pages; skip the
         // formatting and DOM write everywhere else, and when nothing changed.
