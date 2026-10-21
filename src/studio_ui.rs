@@ -2,6 +2,7 @@ use eframe::egui::{self, Color32, FontId, Rect, Response, Stroke, Vec2};
 
 pub const PANEL: Color32 = Color32::from_rgb(21, 21, 24);
 pub const LINE: Color32 = Color32::from_rgb(46, 46, 51);
+pub const SPEED_ROW_HEIGHT: f32 = 32.0;
 pub const TEXT: Color32 = Color32::from_rgb(236, 236, 239);
 pub const MUTED: Color32 = Color32::from_rgb(146, 146, 157);
 pub const ACCENT: Color32 = Color32::from_rgb(210, 212, 222);
@@ -49,7 +50,8 @@ impl Layout {
         let width = 320.0f32.min(available);
         let top = view.top() + margin;
         let readout_height = if readout_visible { 22.0 } else { 0.0 };
-        let bottom = view.bottom() - margin - if narrow { 68.0 + readout_height } else { 0.0 };
+        let dock_height = if narrow { 56.0 } else { 48.0 } + readout_height + SPEED_ROW_HEIGHT;
+        let bottom = view.bottom() - margin - if narrow { dock_height + margin } else { 0.0 };
         let inspector = Rect::from_min_size(
             egui::pos2(view.right() - margin - width, top),
             egui::vec2(width, (bottom - top).max(0.0)),
@@ -62,7 +64,6 @@ impl Layout {
         };
         let dock_width =
             (if narrow { 280.0f32 } else { 336.0 }).min((scene_right - scene_left).max(0.0));
-        let dock_height = if narrow { 56.0 } else { 48.0 } + readout_height;
         let dock = Rect::from_min_size(
             egui::pos2(
                 (scene_left + scene_right - dock_width) * 0.5,

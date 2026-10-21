@@ -2304,6 +2304,58 @@ impl SoupApp {
         });
     }
 
+    fn speed_controls(&mut self, ui: &mut egui::Ui) {
+        let fixed = self.state.simulation.mode == crate::simulation::SimulationMode::FixedRate;
+        let previous = if fixed {
+            self.state.simulation.ticks_per_second
+        } else {
+            self.state.prefs.physics_steps
+        };
+        let mut speed = previous;
+        let locked = self.comparison_busy()
+            || self.pending_project.is_some()
+            || self.recorder.is_some()
+            || self.pending_export.is_some()
+            || self.clock.pending_exact_steps() > 0;
+        let changed = ui
+            .scope(|ui| {
+                ui.spacing_mut().interact_size.y = studio_ui::SPEED_ROW_HEIGHT - 4.0;
+                ui.add_enabled_ui(!locked, |ui| {
+                    controls::physics_speed_bar(ui, &mut speed, fixed).changed()
+                })
+                .inner
+            })
+            .inner;
+        if changed {
+            self.cancel_rate_calibration();
+            self.calibration = None;
+            if fixed {
+                self.state.simulation.ticks_per_second = speed;
+                self.clock.clear_wall_debt();
+                self.last_tick_plan = Instant::now();
+            } else {
+                self.state.prefs.physics_steps = speed;
+                if self.state.prefs.strong_logging {
+                    self.write_archive(&crate::archive::Event {
+                        session: self.archive_session.clone(),
+                        at: crate::archive::epoch_ms(),
+                        kind: "preference".into(),
+                        field: Some("physics_steps".into()),
+                        value: Some(serde_json::json!(speed)),
+                        previous: Some(serde_json::json!(previous)),
+                        label: "Physics Rate".into(),
+                        hash: None,
+                        from: None,
+                        state: None,
+                    });
+                }
+            }
+            self.held_view = None;
+            self.comparison_stale = true;
+            self.state_dirty = true;
+        }
+    }
+
     fn menu(&mut self, ctx: &egui::Context, now: f64) {
         self.preview_hovered = false;
         if self.panels_hidden {
@@ -2325,6 +2377,8 @@ impl SoupApp {
                     ui.set_width((layout.dock.width() - 12.0).max(0.0));
                     ui.spacing_mut().item_spacing = egui::vec2(4.0, 0.0);
                     self.status_controls(ui, now);
+                    ui.add_space(4.0);
+                    self.speed_controls(ui);
                     ui.add_space(4.0);
                     ui.spacing_mut().interact_size.y = if layout.narrow { 44.0 } else { 36.0 };
                     ui.add_enabled_ui(!locked, |ui| {

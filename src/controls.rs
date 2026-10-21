@@ -96,6 +96,24 @@ fn active(ui: &Ui, r: &Response) -> bool {
                     .any(|e| matches!(e, egui::Event::Key { pressed: true, .. }))
             }))
 }
+pub(crate) fn physics_speed_bar(ui: &mut Ui, value: &mut u32, fixed_rate: bool) -> Response {
+    ui.push_id("dock physics speed", |ui| {
+        ui.spacing_mut().slider_width = ui.available_width();
+        let response = ui.add(
+            egui::Slider::new(value, 1..=if fixed_rate { 7200 } else { 60 })
+                .clamping(egui::SliderClamping::Edits)
+                .logarithmic(fixed_rate)
+                .show_value(false)
+                .trailing_fill(true),
+        );
+        observe_performance_drag(ui.ctx(), &response);
+        response.on_hover_text(format!(
+            "Simulation speed: {value} {}. Drag to adjust.",
+            if fixed_rate { "ticks/s" } else { "steps/frame" }
+        ))
+    })
+    .inner
+}
 fn position(value: f64, lo: f64, hi: f64, curve: f64) -> f64 {
     ((value - lo) / (hi - lo)).clamp(0.0, 1.0).powf(1.0 / curve)
 }
@@ -458,7 +476,7 @@ pub fn preferences_panel(ui: &mut Ui, prefs: &mut Preferences, hints: &Performan
         render_scale(ui, prefs);
         ui.checkbox(&mut prefs.show_fps_counter,"Show FPS Counter").on_hover_text("The quiet frame-rate readout above the playback controls. Click it to open Settings; hover for GPU timing and the full readout. Measurement pauses while the simulation is paused, recording, or exporting.\n\nThe number is capped at 60, the simulation's target frame rate.\n\nWorld Size, Physics Rate, Motion Blur, and costly Cells settings show yellow or red warnings when the frame rate falls behind.");
         {
-            ui.checkbox(&mut prefs.show_physics_slider,"Show Physics Rate").on_hover_text("The quiet rate readout above the playback controls. Click it to open Settings and adjust Physics Rate; right-click to calibrate or cancel calibration.\n\nUntick to hide this readout.");
+            ui.checkbox(&mut prefs.show_physics_slider,"Show Physics Rate").on_hover_text("The quiet rate readout above the speed bar. Click it to open Settings; right-click to calibrate or cancel calibration.\n\nThe speed bar stays visible until X hides the controls.");
         }
     });
     if advanced {
@@ -682,6 +700,7 @@ mod tests {
             fixed_rate: None,
         };
         let ctx = egui::Context::default();
+        let mut fixed_rate = 7200;
         for width in [336.0, 720.0] {
             for _ in 0..2 {
                 let mut output = ctx.run_ui(
@@ -699,11 +718,14 @@ mod tests {
                             appearance_panel(ui, &mut prefs, &hints, true)
                         });
                         ui.push_id("drawing", |ui| drawing_panel(ui, &mut prefs));
+                        physics_speed_bar(ui, &mut prefs.physics_steps, false);
+                        physics_speed_bar(ui, &mut fixed_rate, true);
                     },
                 );
                 output.textures_delta.clear();
                 assert_eq!(project, before_project);
                 assert_eq!(prefs, before_prefs);
+                assert_eq!(fixed_rate, 7200);
             }
         }
     }
