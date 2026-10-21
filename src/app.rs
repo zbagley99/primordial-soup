@@ -81,8 +81,16 @@ impl SavedState {
 impl Default for SavedState {
     fn default() -> Self {
         Self {
-            project: Project::default(),
-            prefs: Preferences::default(),
+            project: Project::from_json(include_str!("../assets/default-project.json"))
+                .expect("shipped startup project must be valid"),
+            prefs: Preferences {
+                cells: crate::cells::Settings {
+                    style: crate::cells::Style::Cells,
+                    ..Default::default()
+                },
+                world_size: 1.0,
+                ..Default::default()
+            },
             saves: BTreeMap::new(),
             checkpoints: Vec::new(),
             camera_settings: Default::default(),
@@ -471,7 +479,7 @@ impl SoupApp {
             .and_then(|s| serde_json::from_str(s).ok())
             .unwrap_or_default();
         if state.project.validate().is_err() {
-            state.project = Project::default();
+            state.project = SavedState::default().project;
         }
         state.checkpoints.retain(|p| p.validate().is_ok());
         state.saves.retain(|_, p| p.validate().is_ok());
@@ -5212,6 +5220,28 @@ mod preview_persistence_tests {
         fn flush(&mut self) {}
     }
     #[test]
+    fn fresh_state_uses_the_captured_startup_project_but_saved_projects_survive() {
+        let fresh: SavedState = serde_json::from_str("{}").unwrap();
+        let captured = Project::from_json(include_str!("../assets/default-project.json")).unwrap();
+        assert_eq!(fresh.project, captured);
+        assert_eq!(fresh.project.name, "Diversity");
+        assert_eq!(fresh.prefs.cells.style, crate::cells::Style::Cells);
+        assert_eq!(fresh.prefs.world_size, 1.0);
+
+        let saved = SavedState {
+            project: Project::default(),
+            prefs: Preferences {
+                brightness: 2.7,
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let restored: SavedState =
+            serde_json::from_str(&serde_json::to_string(&saved).unwrap()).unwrap();
+        assert_eq!(restored.project, saved.project);
+        assert_eq!(restored.prefs, saved.prefs);
+    }
+    #[test]
     fn complete_saved_state_roundtrips_eframe_ron_and_migrates_old_cells() {
         use crate::cells::{Style, Theme};
         let mut storage = MemoryStorage::default();
@@ -5257,7 +5287,7 @@ mod preview_persistence_tests {
         assert!(!loaded.prefs.cells.reference_palette);
         assert_eq!(loaded.prefs.cells.scale, 2.0);
         assert_eq!(loaded.prefs.cells.wash, 0.6);
-        assert_eq!(loaded.prefs.cells.structure_threshold, 0.0);
+        assert_eq!(loaded.prefs.cells.structure_threshold, 1.02);
         storage
             .0
             .insert("state".into(), "(prefs:(cells:(theme:dark,typo:1)))".into());

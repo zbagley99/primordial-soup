@@ -12,8 +12,8 @@ fn old_preferences_keep_classic_and_cells_settings_roundtrip() {
     let old: Preferences = serde_json::from_str("{}").unwrap();
     assert_eq!(old.cells.style, Style::Classic);
     assert_eq!(old.cells.theme, Theme::Dark);
-    assert_eq!(old.cells.structure_threshold, 0.0);
-    assert_eq!(old.cells.membranes, 1.0);
+    assert_eq!(old.cells.structure_threshold, 1.02);
+    assert_eq!(old.cells.membranes, 0.77);
     assert!(!old.cells.reference_palette);
     let mut settings = Settings::default();
     settings.style = Style::Cells;
@@ -30,14 +30,14 @@ fn old_preferences_keep_classic_and_cells_settings_roundtrip() {
     settings.structure_threshold = f32::NAN;
     settings.membranes = f32::INFINITY;
     settings.sanitize();
-    assert_eq!(settings.structure_threshold, 0.0);
-    assert_eq!(settings.membranes, 1.0);
+    assert_eq!(settings.structure_threshold, 1.02);
+    assert_eq!(settings.membranes, 0.77);
     settings.structure_threshold = 10.0;
     settings.sanitize();
     assert_eq!(settings.structure_threshold, 4.0);
     assert!(settings.relief.is_finite() && settings.relief <= 0.9);
     assert_eq!(settings.scale, 0.5);
-    assert_eq!(settings.chromatic, 0.0);
+    assert_eq!(settings.chromatic, 0.06);
 }
 
 #[test]
