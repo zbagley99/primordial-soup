@@ -169,8 +169,9 @@ flock -n /tmp/gpu-timing.lock target/release/gpu-check \
   --output artifacts/local/cells-tiled-parity.json
 ```
 
-Its 32 comparisons cover compact/dense/wrapped fixtures, highlight transitions,
-temporal samples and forced capacity fallback on identical frozen particles.
+Its 60 comparisons cover compact/dense/wrapped/empty fixtures, highlight and
+membrane transitions, temporal samples and forced capacity fallback on identical
+frozen particles.
 The strict reference uses the same analytical pixel distances as Fast Cells;
 it verifies gather arithmetic, color/mass/selection, membrane state and final
 pixels against that explicit raster reference. It does not establish pixel
@@ -179,6 +180,14 @@ identity with the original interpolated raster arithmetic. Keep the separate
 with the results. Small cell-edge differences are an accepted Fast Cells
 tradeoff; numerical and regression gates still apply. Users can disable Fast
 Cells to retain the original appearance.
+
+For an exact baseline comparison, build the same diagnostic checker against
+each implementation. Add `--capture-dir DIR` to the baseline run to save all 90
+image/selection/membrane/site snapshots, then add `--baseline-dir DIR` to the
+candidate run. Every captured byte must match, independently of the analytical
+reference tolerances. Missing directory arguments and mismatches fail the run.
+Keep the baseline source and executable with the captures. The latest campaign
+and its unchanged-output gates are in [optimization results](OPTIMIZATION_RESULTS.md).
 
 The physics path skips painted-field texture reads only while a newly created
 engine's field is known to be pristine. Any paint or raw texture access

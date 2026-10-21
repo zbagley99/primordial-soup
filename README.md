@@ -36,17 +36,17 @@ make run LOW_PRIO=1
 Native rendering uses the hardware adapter and refuses software GPU fallback.
 Once built, `target/release/primordial-soup` also launches the app directly.
 The first visit calibrates the GPU using the reference's bounded progression;
-Simulation → Auto-calibrate GPU reruns it. World size, physics rate, temporal
+More → Simulation → Auto-calibrate GPU reruns it. World size, physics rate, temporal
 samples and bloom remain adjustable.
 
-Right-click the fast-forward button, or choose Simulation → Auto-calibrate
-Physics Rate, to tune the current project using full rendered frame intervals.
+Right-click the Physics readout above playback, or choose
+More → Simulation → Auto-calibrate Physics Rate, to tune the current project using full rendered frame intervals.
 This includes motion blur and bloom and preserves the simulation. Starting from
 a paused view resumes it for measurement and restores that pause afterward.
 Right-click again to cancel and restore the original rate; a 20-second deadline
 also restores it if the run cannot receive usable frames.
 
-**Simulation → Timing & Experiments** separates the simulation clock from the
+**More → Simulation → Timing & Experiments** separates the simulation clock from the
 display. The default Frame based mode retains Physics Rate steps per frame.
 Choose Fixed simulation ticks per second to set the tick rate independently of
 Presentation FPS (1–60). Each tick still executes the original particle update
@@ -78,7 +78,7 @@ also depends on the batch size.
 Native video export requires `ffmpeg` with `h264_nvenc`; it uses NVIDIA's encoder
 and never silently substitutes a CPU encoder. Native camera capture uses Linux
 V4L2 through FFmpeg, on one low-priority thread at 15 fps. Start it explicitly
-in Simulation → Webcam Input. Native QR image import needs `zbarimg`.
+in More → Simulation → Webcam Input. Native QR image import needs `zbarimg`.
 Native downloads go into `exports/` in the working directory.
 
 **Webcam Input** turns a live camera image into forces or trail signals that
@@ -89,7 +89,7 @@ connect one or start its virtual feed. Camera permission is requested only when
 you press Start webcam. To navigate the world, use the mouse wheel to zoom and
 middle-drag or WASD to pan.
 
-**Share → Record World (Video)** saves the entire world without editor controls.
+**More → Share → Record World (Video)** saves the entire world without editor controls.
 No webcam is required. Choose dimensions, duration and quality, then start; the
 initial speed and blur follow the preview. Output uses 60 fps simulation time,
 so slower encoding changes export time rather than playback speed. The output
@@ -106,10 +106,10 @@ but the browser may finish its already-started muxing before releasing it.
 
 ## Cellular appearance
 
-Choose **Style → Cells** in the toolbar for density-sized particles, subtle cell
+Choose **Inspector → Look → Cells** for density-sized particles, subtle cell
 relief and a smooth color wash. Cells defaults to **Dark** with the existing
-particle colors; **Light** retains the pale background. Choose either beside
-Style. The green/pink palette is optional under Advanced. **Classic** remains
+particle colors; **Light** retains the pale background. Choose either theme in
+**Inspector → Look**. The green/pink palette is optional under Advanced. **Classic** remains
 the default rendering style. Appearance works independently of Fourier / MLP /
 GRU and is included in clean PNG and video output. Paused appearance edits do
 not advance the world.
@@ -119,6 +119,9 @@ Cells is more expensive: the bounded native RTX 3090 check measured 6.39 ms at
 Cells-only logical storage was about 214 MiB. These are rendering measurements,
 not simulation throughput or browser FPS. See the [rendering contract](docs/CELLULAR_RENDERING_SPEC.md)
 and [validation report](docs/CELLULAR_RENDERING_VALIDATION.md).
+
+The [latest optimization results](docs/OPTIMIZATION_RESULTS.md) record matched
+before/after measurements and exact image comparisons for the current renderer.
 
 ## Build WebAssembly
 
@@ -149,10 +152,13 @@ project in its fragment and can suggest editor settings for the recipient to
 accept. Native links for legacy Fourier projects keep the original link format.
 `?ticks=300&fps=15&nocalibrate` selects fixed ticking with a slower display.
 
-File → Load contains expandable **Core (22)**, **Custom**, and **Archive (109)**
-sections; Archive starts collapsed. Hover previews a project, leaving cancels
-the preview, and clicking loads it. The FPS badge and performance labels use
-the reference's red/yellow/green feedback.
+**Presets** contains **Core (22)** and **Archive (109)** from Jesse Gelders’
+[Fluoddity](https://fluoddity.com/), plus **Your saved presets** stored locally.
+The source is visible in the preset picker; Archive starts collapsed. Hover
+previews a project, leaving cancels the preview, and clicking loads it. The quiet
+FPS and configured Physics readouts stay visible above playback, including
+with the inspector open. Toggle either in **Inspector → Settings → Performance**.
+Costly settings use yellow/red warnings when the frame rate falls behind.
 
 The browser build excludes the unused WebGL backend and shader compiler.
 Production WASM omits name/producers metadata while retaining identical code
@@ -190,7 +196,7 @@ sizes against the 25 MiB per-file limit and the Free Pages 20,000-file limit.
 
 ## Network modes and comparisons
 
-Choose **Fourier / MLP / GRU** in the mutation toolbar. Each mode retains its own
+Choose **Fourier / MLP / GRU** in **Inspector → World**. Each mode retains its own
 rule, seed and Mutation Scale; sensors and physics settings are shared. Switching
 always resets particles, swarm trails and network memory to tick 0. Painted
 fields stay in place. The new modes use the same selection/adoption controls as
@@ -205,7 +211,7 @@ Press **B / Randomize Behavior** to start the revised model in an older bank.
 See the [IO specification](docs/NETWORK_IO_SPEC.md) and
 [evaluation results](docs/NETWORK_IO_RESULTS.md).
 
-In **Simulation → Timing & Experiments**, **Run N ticks** starts a clean comparison,
+In **More → Simulation → Timing & Experiments**, **Run N ticks** starts a clean comparison,
 clears painted fields too, disables camera influence and automatic calibration,
 and executes exactly the chosen tick count. Settings are locked until completion
 or cancellation. **Save comparison JSON** includes the project with all mode banks,
@@ -228,7 +234,8 @@ and [implementation evidence](docs/NETWORK_MODES_RESULTS.md).
 
 ## Explore
 
-Start with File → Load → Core. Choose 4 or 16 cohorts, raise Mutation Scale and
+Start with **Presets → Core · Fluoddity**. In **Inspector → World**, choose 4 or 16 cohorts,
+raise Mutation Scale and
 reroll with **F**. Click a cohort to highlight it; click it again or press
 **Enter** to adopt its rule and produce children. **Z / Shift+Z** undo/redo;
 **C / V** set/load a checkpoint. On touch, use the explicit Adopt button.
@@ -237,15 +244,21 @@ reroll with **F**. Click a cohort to highlight it; click it again or press
 particles/trails; **G** toggles Color by Cohort. **[ / ]** lower/raise Mutation
 Scale by 0.01, clamped to 0–0.6. **Comma / Period** lower/raise Physics Rate
 through 1, 5, 10, …, 60 steps/frame. **X** hides/restores all panels,
-including the mutation toolbar, dialogs and performance readouts, without
-changing pause or the open-window state. A bottom-left **X for panels** hint
-remains while hidden. **Controls** opens Project/Preferences.
+including the command dock, inspector, dialogs and readouts, without changing
+pause or the open-window state. **Show controls · X** remains while hidden.
+The bottom dock keeps playback, **Presets**, interaction tools, **Inspect**, and
+**More** together. **Inspect** opens World, Look, Settings, and contextual Brush
+controls. Selecting a tool leaves the inspector closed; open Brush settings
+from the tool menu. Reset and stepping are also available in **More**, with
+Step beside playback on desktop. See the [UI design and validation notes](docs/UI_DESIGN.md).
+FPS and Physics Rate stay visible above playback by default. Hide either
+independently in **Inspect → Settings → Performance**.
 **Home** resets the view. Wheel zooms at
 the pointer, middle drag or **WASD** pans, and **Q/E** zooms. Tools **1–4** are
 Select, Shove, Walls and Trails. Right drag pulls/erases. Shift+click builds
 straight line segments. Wall and trail fields clear independently.
 
-Share provides project links, QR-stamped screenshots and offline video export.
+**More → Share** provides project links, QR-stamped screenshots and offline video export.
 **P** opens crop capture; drag anywhere on the canvas to choose the crop.
 Drop JSON, ZIP or a QR image to import. Custom-save imports preserve existing
 names. Strong Logging is opt-in and exports the original version-2 archive
@@ -282,6 +295,10 @@ and serial/batched comparisons. `--benchmark --no-profile` measures the same
 fixed workload without timestamp instrumentation; calibration is always off in
 the checker. The default workgroup remains 256 where supported, falling back
 to 128 or 64 by device limits. Support alone does not establish a faster choice.
+
+Measured changes and exactness checks are recorded in the
+[network performance report](docs/NETWORK_PERFORMANCE_RESULTS.md) and
+[Cells renderer report](docs/OPTIMIZATION_RESULTS.md).
 
 Test results cannot establish that a program is absolutely bug-free. Physical
 camera devices and GPUs/browsers other than the recorded test environment need
