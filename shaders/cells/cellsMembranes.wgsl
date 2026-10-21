@@ -19,7 +19,9 @@ fn coincident(p:vec2i)->bool {
 @compute @workgroup_size(8,8) fn accumulate(@builtin(global_invocation_id) id:vec3u){
  if(any(id.xy>=vec2u(c.screen.xy))){return;}
  let index=id.y*u32(c.screen.x)+id.x;
- let first=atomicLoad(&sites[index].first);if(first==0u){return;}
+ let fresh=c.render.y==1.0;
+ let first=atomicLoad(&sites[index].first);
+ if(first==0u){if(fresh){history[index]=vec2f(0);}return;}
  let second=atomicLoad(&sites[index].second);
  let a=cell_key_distance(first);let b=cell_key_distance(second);
  let p=vec2f(id.xy)+0.5;
@@ -42,5 +44,5 @@ fn coincident(p:vec2i)->bool {
  let interior=(0.12+0.08*(1.0-a*a))*coverage;
  // Shade before averaging. Averaging distances would invent false walls when
  // cells move between actual motion-blur samples.
- history[index]+=vec2f(interior,rim)*c.render.y;
+ if(fresh){history[index]=vec2f(interior,rim)*c.render.y;}else{history[index]+=vec2f(interior,rim)*c.render.y;}
 }

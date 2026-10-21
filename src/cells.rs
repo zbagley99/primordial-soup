@@ -369,6 +369,7 @@ pub struct Cells {
     membrane_accumulate: wgpu::ComputePipeline,
     membrane_group: wgpu::BindGroup,
     membranes_active: bool,
+    single_sample: bool,
     pub density: wgpu::Texture,
     _density_temp: wgpu::Texture,
     _density_views: Vec<wgpu::TextureView>,
@@ -896,6 +897,7 @@ impl Cells {
             membrane_accumulate,
             membrane_group,
             membranes_active: false,
+            single_sample: false,
             density,
             _density_temp: temp,
             _density_views: density_views,
@@ -982,6 +984,7 @@ impl Cells {
         highlight: f32,
     ) {
         self.samples = 0;
+        self.single_sample = samples.max(1) == 1;
         self.active = 0;
         self.frame_camera = *camera;
         self.wrapping = p.world.boundary_conditions == 1;
@@ -1067,7 +1070,7 @@ impl Cells {
     }
     pub fn clear(&self, e: &mut wgpu::CommandEncoder) {
         clear(e, &[&self.image_views[0], &self.mask_views[0]]);
-        if self.membranes_active {
+        if self.membranes_active && !self.single_sample {
             e.clear_buffer(&self.membrane_history, 0, None);
         }
     }
@@ -1079,31 +1082,38 @@ impl Cells {
     ) {
         let start = profile.as_mut().and_then(|p| p.begin(e));
         e.clear_buffer(&self.counts, 0, None);
-        dispatch(
-            e,
-            &self.count,
-            &self.count_group,
-            [engine.sizing.entity_count.div_ceil(256), 1],
-        );
-        dispatch(
-            e,
-            &self.horizontal,
-            &self.horizontal_group,
-            self.grid.map(|v| v.div_ceil(8)),
-        );
-        dispatch(
-            e,
-            &self.vertical,
-            &self.vertical_group,
-            self.grid.map(|v| v.div_ceil(8)),
-        );
-        for (i, g) in self.density_down.iter().enumerate() {
+        {
+            let mut pass = e.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                label: Some("Cells density"),
+                ..Default::default()
+            });
+            let mut dispatch = |p: &wgpu::ComputePipeline, g: &wgpu::BindGroup, n: [u32; 2]| {
+                pass.set_pipeline(p);
+                pass.set_bind_group(0, g, &[]);
+                pass.dispatch_workgroups(n[0], n[1], 1);
+            };
             dispatch(
-                e,
-                &self.down,
-                g,
-                self.grid.map(|v| (v >> (i + 1)).max(1).div_ceil(8)),
+                &self.count,
+                &self.count_group,
+                [engine.sizing.entity_count.div_ceil(256), 1],
             );
+            dispatch(
+                &self.horizontal,
+                &self.horizontal_group,
+                self.grid.map(|v| v.div_ceil(8)),
+            );
+            dispatch(
+                &self.vertical,
+                &self.vertical_group,
+                self.grid.map(|v| v.div_ceil(8)),
+            );
+            for (i, g) in self.density_down.iter().enumerate() {
+                dispatch(
+                    &self.down,
+                    g,
+                    self.grid.map(|v| (v >> (i + 1)).max(1).div_ceil(8)),
+                );
+            }
         }
         if let Some(p) = profile.as_mut() {
             p.end(e, crate::profiling::Stage::CellsDensity, start);
@@ -1113,18 +1123,28 @@ impl Cells {
         // Plan the batches on the GPU: overlap bound, reachable copies, batch mode.
         e.clear_buffer(&self.plan, 0, None);
         let cells = self.grid.map(|v| v.div_ceil(8));
-        dispatch(e, &self.box_rows, &self.box_rows_group, cells);
-        dispatch(e, &self.box_columns, &self.box_columns_group, cells);
-        dispatch(
-            e,
-            &self.prepare,
-            &self.prepare_group,
-            [engine.sizing.entity_count.div_ceil(256), 1],
-        );
-        dispatch(e, &self.plan_batches, &self.plan_group, [1, 1]);
+        {
+            let mut pass = e.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                label: Some("Cells planning"),
+                ..Default::default()
+            });
+            let mut dispatch = |p: &wgpu::ComputePipeline, g: &wgpu::BindGroup, n: [u32; 2]| {
+                pass.set_pipeline(p);
+                pass.set_bind_group(0, g, &[]);
+                pass.dispatch_workgroups(n[0], n[1], 1);
+            };
+            dispatch(&self.box_rows, &self.box_rows_group, cells);
+            dispatch(&self.box_columns, &self.box_columns_group, cells);
+            dispatch(
+                &self.prepare,
+                &self.prepare_group,
+                [engine.sizing.entity_count.div_ceil(256), 1],
+            );
+            dispatch(&self.plan_batches, &self.plan_group, [1, 1]);
+        }
         // Reversed positive-float distance keys: zero means absent, larger is
         // nearer. Preserve the two winners across every particle batch.
-        if self.membranes_active {
+        if self.membranes_active && self.tiled.is_none() {
             e.clear_buffer(&self.sites, 0, None);
         }
         if let Some(p) = profile.as_mut() {
@@ -1202,16 +1222,23 @@ impl Cells {
     /// `sharpen` must match the frame's Cells sharpening (nonzero), which needs
     /// the separate finishing pass.
     pub fn resolve(&mut self, e: &mut wgpu::CommandEncoder, sharpen: bool) {
+        let mut pass = e.begin_compute_pass(&wgpu::ComputePassDescriptor {
+            label: Some("Cells resolve"),
+            ..Default::default()
+        });
+        let mut dispatch = |p: &wgpu::ComputePipeline, g: &wgpu::BindGroup, n: [u32; 2]| {
+            pass.set_pipeline(p);
+            pass.set_bind_group(0, g, &[]);
+            pass.dispatch_workgroups(n[0], n[1], 1);
+        };
         let size = self.padded.map(|n| (n / 2).max(1));
         dispatch(
-            e,
             &self.blur_first_pipeline,
             &self.blur_first[self.active],
             size.map(|v| v.div_ceil(8)),
         );
         for (i, g) in self.blur_groups.iter().enumerate() {
             dispatch(
-                e,
                 &self.blur,
                 g,
                 size.map(|v| (v >> (i + 1)).max(1).div_ceil(8)),
@@ -1219,20 +1246,17 @@ impl Cells {
         }
         let next = 1 - self.displayed_map;
         dispatch(
-            e,
             &self.make_map,
             &self.map_groups[next],
             self.map_size.map(|v| v.div_ceil(8)),
         );
         dispatch(
-            e,
             &self.shade,
             &self.shade_groups[self.active][next],
             self.shaded_size.map(|v| v.div_ceil(8)),
         );
         if sharpen {
             dispatch(
-                e,
                 &self.finish,
                 &self.finish_groups[self.active][next],
                 self.size.map(|v| v.div_ceil(8)),

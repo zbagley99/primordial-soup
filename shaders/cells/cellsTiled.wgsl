@@ -1,7 +1,7 @@
 // Fast Cells compact-only tile gather. Every failure preserves the original draw.
 #include "cellsBatch.wgsl"
 struct TileConfig { tiles:vec2u, record_capacity:u32, index_capacity:u32, tile_count:u32, blocks:u32, max_occupancy:u32, average_slot:u32 }
-struct Record { geometry:vec4f, pigment:vec4f, bounds:vec4u }
+struct Record { geometry:vec4f, pigment:vec4f }
 struct TileState { overflow:atomic<u32>, references:u32, enabled:u32, max_occupancy:atomic<u32>, dispatch:vec4u }
 struct PlainSites { first:u32, second:u32 }
 @group(0) @binding(1) var<uniform> cfg:TileConfig;
@@ -35,6 +35,11 @@ fn tile_center(e:Entity,copy:u32)->vec2f {
  let ndc=cell_ndc(position)*c.canvas.zw/c.screen.xy;
  return vec2f(ndc.x*0.5+0.5,0.5-ndc.y*0.5)*c.screen.xy;
 }
+fn tile_bounds(geometry:vec4f)->vec4u {
+ let lo=vec2u(clamp(floor((geometry.xy-geometry.z)/8.0),vec2f(0),vec2f(cfg.tiles-1u)));
+ let hi=vec2u(clamp(floor((geometry.xy+geometry.z)/8.0),vec2f(0),vec2f(cfg.tiles-1u)));
+ return vec4u(lo,hi);
+}
 @compute @workgroup_size(256) fn prepare(@builtin(global_invocation_id) id:vec3u){
  if(plan.mode!=COMPACT || id.x>=plan.entries){return;}
  if(id.x>=cfg.record_capacity){atomicStore(&state.overflow,1u);return;}
@@ -42,9 +47,8 @@ fn tile_center(e:Entity,copy:u32)->vec2f {
  let cp=e_col_params(e);let signal=select(cp.x,cp.y*0.75,c.color.z>0.5);let h=c.color.x*signal+c.color.y;
  var color=cell_hsv(h);if(c.look.x>0.5){let t=0.5+0.5*sin(h*6.2831853);color=mix(vec3f(0.28,0.43,0.04),vec3f(0.72,0.19,0.35),smoothstep(0.35,0.7,t));}
  // Conservative integer bounding box includes all potentially covered centers.
- let lo=vec2u(clamp(floor((center-radius)/8.0),vec2f(0),vec2f(cfg.tiles-1u)));
- let hi=vec2u(clamp(floor((center+radius)/8.0),vec2f(0),vec2f(cfg.tiles-1u)));
- records[id.x]=Record(vec4f(center,radius,bitcast<f32>(s.y)),vec4f(color,select(0.0,1.0,c.color.w<0.0 || floor(cp.y)==c.color.w)),vec4u(lo,hi));
+ let geometry=vec4f(center,radius,bitcast<f32>(s.y));let bounds=tile_bounds(geometry);let lo=bounds.xy;let hi=bounds.zw;
+ records[id.x]=Record(geometry,vec4f(color,select(0.0,1.0,c.color.w<0.0 || floor(cp.y)==c.color.w)));
  for(var y=lo.y;y<=hi.y;y++){for(var x=lo.x;x<=hi.x;x++){atomicAdd(&counts[y*cfg.tiles.x+x],1u);}}
 }
 var<workgroup> scan_values:array<u32,256>;
@@ -65,7 +69,7 @@ var<workgroup> scan_values:array<u32,256>;
 }
 @compute @workgroup_size(256) fn fill(@builtin(global_invocation_id) id:vec3u){
  if(plan.mode!=COMPACT || atomicLoad(&state.overflow)!=0u || id.x>=min(plan.entries,cfg.record_capacity)){return;}
- let b=records[id.x].bounds;
+ let b=tile_bounds(records[id.x].geometry);
  for(var y=b.y;y<=b.w;y++){for(var x=b.x;x<=b.z;x++){
   let tile=y*cfg.tiles.x+x;let slot=offsets[tile]+atomicAdd(&counts[tile],1u);
   if(slot<cfg.index_capacity){indices[slot]=id.x;}else{atomicStore(&state.overflow,1u);}
@@ -81,13 +85,15 @@ var<workgroup> tile_length:u32;
 @compute @workgroup_size(8,8) fn raster(@builtin(global_invocation_id) id:vec3u,@builtin(local_invocation_index) li:u32,@builtin(workgroup_id) wg:vec3u){
  if(li==0u){tile_enabled=state.enabled;tile_length=atomicLoad(&counts[wg.y*cfg.tiles.x+wg.x]);}
  workgroupBarrier();
- if(workgroupUniformLoad(&tile_enabled)==0u){return;}
- let valid=all(id.xy<vec2u(c.screen.xy));let p=vec2f(id.xy)+0.5;
+ let valid=all(id.xy<vec2u(c.screen.xy));let pixel=id.y*u32(c.screen.x)+id.x;
+ if(workgroupUniformLoad(&tile_enabled)==0u){
+  if(valid && c.structure.y>0.0){sites[pixel]=PlainSites(0u,0u);}
+  return;
+ }
+ let p=vec2f(id.xy)+0.5;
  let inside=valid && (c.camera.w==1.0 || cell_inside(p));
  let tile=wg.y*cfg.tiles.x+wg.x;let n=workgroupUniformLoad(&tile_length);let first=offsets[tile];
  var red=0u;var green=0u;var blue=0u;var mass=0u;var chosen=0u;var nearest=0u;var second=0u;
- let pixel=id.y*u32(c.screen.x)+id.x;
- if(valid && c.structure.y>0.0){nearest=sites[pixel].first;second=sites[pixel].second;}
  for(var start=0u;start<n;start+=64u){
   let len=min(64u,n-start);if(li<len){cached[li]=records[indices[first+start+li]];}workgroupBarrier();
   if(inside){for(var j=0u;j<len;j++){

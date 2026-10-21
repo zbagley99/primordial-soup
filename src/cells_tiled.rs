@@ -50,6 +50,7 @@ impl Tiled {
         let tiles = [size[0].div_ceil(8), size[1].div_ceil(8)];
         let tile_count = tiles[0].checked_mul(tiles[1])?;
         let blocks_n = tile_count.div_ceil(256);
+        // Preserve the original record count and its fallback decisions.
         let entries = capacity.min(((128u64 << 20).min(max_buffer) / 48) as u32);
         let references = index_limit
             .unwrap_or(16 << 20)
@@ -74,7 +75,7 @@ impl Tiled {
                 mapped_at_creation: false,
             })
         };
-        let records = make("Cells tiled records", u64::from(entries) * 48);
+        let records = make("Cells tiled records", u64::from(entries) * 32);
         let counts = make("Cells tiled counts", u64::from(tile_count) * 4);
         let offsets = make("Cells tiled offsets", u64::from(tile_count) * 4);
         let indices = make("Cells tiled indices", u64::from(references) * 4);
@@ -182,7 +183,7 @@ impl Tiled {
             bytes,
         })
     }
-    /// Run after planner and the sample's site clear, before the original draw.
+    /// Initialize this sample's membrane sites after planning, before the original draw.
     pub fn encode(&self, encoder: &mut wgpu::CommandEncoder, active: usize) {
         encoder.clear_buffer(&self.counts, 0, None);
         encoder.clear_buffer(&self.state, 0, None);
