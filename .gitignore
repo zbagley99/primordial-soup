@@ -17,6 +17,7 @@ TEST-LOG.md
 /.agents/
 /.worktrees/
 /.cache/
+/.wrangler/
 __pycache__/
 *.py[cod]
 .DS_Store

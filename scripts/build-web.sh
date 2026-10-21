@@ -3,7 +3,11 @@ set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 command -v wasm-bindgen >/dev/null || { echo 'Install wasm-bindgen-cli matching Cargo.lock before building.' >&2; exit 1; }
 rustup target list --installed | grep -qx wasm32-unknown-unknown || { echo 'Run: rustup target add wasm32-unknown-unknown' >&2; exit 1; }
-python3 scripts/low-load.py cargo build --locked --profile web --target wasm32-unknown-unknown --lib
+if [[ "${LOW_PRIO:-0}" == 1 ]]; then
+  python3 scripts/low-load.py cargo build --locked --profile web --target wasm32-unknown-unknown --lib
+else
+  cargo build --locked --profile web --target wasm32-unknown-unknown --lib
+fi
 web_stage=$(mktemp -d "$PWD/.dist-stage.XXXXXX")
 web_backup=''
 cleanup() {
