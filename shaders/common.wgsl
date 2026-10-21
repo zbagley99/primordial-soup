@@ -103,6 +103,8 @@ const SPLAT_FIXED_SCALE: f32 = 16384.0;
 // it. Saturating below the ceiling lets even an absurd pile-up decay back down.
 // fp32 never needed this; do not remove it while the canvas is fp16.
 const CANVAS_VALUE_MAX: f32 = 60000.0;
+const DENSITY_FIXED_SCALE:f32=65536.0;
+const DENSITY_FIXED_MAX:i32=7680000;
 
 // Trail Persistence's legal range inside the shaders. The FLOOR is well below
 // the slider (0.5..0.999) and below every known config (observed min 0.312);

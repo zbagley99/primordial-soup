@@ -3,7 +3,21 @@ use super::*;
 use serde_json::{Value, json};
 use std::{sync::mpsc, time::Duration};
 
+#[path = "paired_contracts.rs"]
+mod paired;
+pub use paired::check as paired_contracts;
+
+#[path = "occupancy_contracts.rs"]
+mod occupancy;
+pub use occupancy::check as occupancy_contracts;
+
 const WORDS: usize = 48;
+
+impl Engine {
+    pub fn audit_field_texture(&self) -> &wgpu::Texture {
+        &self.field
+    }
+}
 
 pub struct Trace {
     buffer: wgpu::Buffer,
@@ -108,6 +122,7 @@ impl Trace {
                 ("NETWORK_MODE", engine.mode.id() as f64),
                 ("BRAIN_REVISION", engine.revision as f64),
                 ("BRAIN_ABLATION", ablation as f64),
+                ("WIDE_OCCUPANCY", f64::from(engine.splat_stride() == 4)),
             ],
         );
         engine.diagnostic_group = Some(group(d, &trace_layout, &[entry(0, &buffer, None)]));
@@ -368,12 +383,89 @@ pub fn evaluate(
     )
 }
 
+fn uniform_scratch_contract(
+    engine: &mut Engine,
+    q: &wgpu::Queue,
+    world: &WorldSettings,
+) -> Result<Value> {
+    let saved_frame = engine.frame_count;
+    engine.frame_count = u32::MAX - 3;
+    let mut stable = None;
+    for (index, steps) in [1, 31, 3, 0, 17].into_iter().enumerate() {
+        engine.entity_uniform_words.fill(0xdead_beef);
+        engine.canvas_uniform_words.fill(0xdead_beef);
+        let shove = (index % 2 == 0).then_some(Shove {
+            center: [-0.25, 0.75],
+            strength: -1.25,
+            size: 0.125,
+        });
+        let strengths = [index as f32 * 0.125, -0.25];
+        engine.prepare_frame(q, world, steps, shove, strengths)?;
+        let stride = engine.uniform_stride as usize / 4;
+        let mut entity = vec![0u32; steps as usize * stride];
+        let mut canvas = entity.clone();
+        for step in 0..steps as usize {
+            let e = &mut entity[step * stride..step * stride + 24];
+            e[..8].copy_from_slice(&world.pack(engine.sizing.sqrt_world_size, engine.config_count));
+            e[8..12].copy_from_slice(&[
+                (engine.sizing.canvas[0] as f32).to_bits(),
+                (engine.sizing.canvas[1] as f32).to_bits(),
+                (engine.field_size[0] as f32).to_bits(),
+                (engine.field_size[1] as f32).to_bits(),
+            ]);
+            if let Some(shove) = shove {
+                e[12..16].copy_from_slice(&[
+                    shove.center[0].to_bits(),
+                    shove.center[1].to_bits(),
+                    shove.strength.to_bits(),
+                    shove.size.to_bits(),
+                ]);
+            }
+            e[16] = engine.frame_count.wrapping_add(step as u32);
+            e[17] = u32::from(engine.field_sampling_active());
+            e[18..22].copy_from_slice(&[
+                strengths[0].to_bits(),
+                strengths[1].to_bits(),
+                engine.camera_strengths[0].to_bits(),
+                engine.camera_strengths[1].to_bits(),
+            ]);
+            let c = &mut canvas[step * stride..step * stride + 12];
+            c[..8].copy_from_slice(&e[..8]);
+            c[8] = e[16];
+            c[9] = engine.splat_stride();
+        }
+        ensure!(
+            engine.entity_uniform_words == entity && engine.canvas_uniform_words == canvas,
+            "Reused uniform packing differs from zero-initialized packing at steps={steps}, shove={shove:?}"
+        );
+        let allocation = (
+            engine.entity_uniform_words.as_ptr() as usize,
+            engine.entity_uniform_words.capacity(),
+            engine.canvas_uniform_words.as_ptr() as usize,
+            engine.canvas_uniform_words.capacity(),
+        );
+        if index == 1 {
+            stable = Some(allocation);
+        } else if index > 1 {
+            ensure!(
+                stable == Some(allocation),
+                "Uniform scratch reallocates after maximum test size"
+            );
+        }
+    }
+    engine.frame_count = saved_frame;
+    Ok(
+        json!({"steps":[1,31,3,0,17],"sentinel_prefill":true,"all_packed_words_exact":true,"shove_then_none":true,"frame_counter_wrap":true,"stable_after_grow":true,"entity_capacity_words":engine.entity_uniform_words.capacity(),"canvas_capacity_words":engine.canvas_uniform_words.capacity()}),
+    )
+}
+
 pub fn contracts(d: &wgpu::Device, q: &wgpu::Queue, workgroup: u32) -> Result<Value> {
     use crate::network::{self, Mode};
     let cases: Value = serde_json::from_str(include_str!(
         "../../tests/fixtures/network-io-oracle.fixture.json"
     ))?;
     let mut results = Vec::new();
+    let mut uniform_scratch = Vec::new();
     for mode in [Mode::Mlp, Mode::Gru] {
         let case = cases
             .as_array()
@@ -532,6 +624,7 @@ pub fn contracts(d: &wgpu::Device, q: &wgpu::Queue, workgroup: u32) -> Result<Va
             &project,
             workgroup,
         )?;
+        uniform_scratch.push(uniform_scratch_contract(&mut engine, q, &project.world)?);
         let mut particles = vec![[0u32; 8]; 4096];
         for e in &mut particles {
             e[0] = 0.03125f32.to_bits();
@@ -846,7 +939,7 @@ pub fn contracts(d: &wgpu::Device, q: &wgpu::Queue, workgroup: u32) -> Result<Va
         );
         results.push(json!({"mode":mode,"max_output_error":max_error,"independent_oracle":true,"ticks":40,"mirrored_histories":true,"zero_motor_rest":true,"stationary_occupancy":true,"cancelling_flow":true,"nonzero_flow":true,"concentrated_particles":4096,"persistence":[0.001,0.938,0.9999],"encoded_observations":true,"lifecycle":true,"exact_pick":true,"same_mode_revision_transition":true}));
     }
-    Ok(json!({"contracts":results}))
+    Ok(json!({"contracts":results,"uniform_scratch":uniform_scratch}))
 }
 
 pub fn canvas_pixels(d: &wgpu::Device, q: &wgpu::Queue, e: &Engine) -> Result<Vec<[f32; 4]>> {

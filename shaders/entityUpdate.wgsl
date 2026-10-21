@@ -108,10 +108,8 @@ override CONFIG_PER_COHORT: bool = false;
 // The operations, which name the binding above. Must follow it.
 #include "freeListOps.wgsl"
 
-// THE SPLAT ACCUMULATOR: this step's trail deposits, one (x, y) i32 pair per
-// canvas pixel, interleaved, at SPLAT_FIXED_SCALE counts per canvas unit. Every
-// live particle adds to it here -- see `deposit` -- and canvas.wgsl drains it
-// into the canvas and zeroes it, so it is empty again by the next step.
+// Per-pixel x/y momentum followed by saturating occupancy, or its low/high
+// unsigned limbs when WIDE_OCCUPANCY is selected. The host clears after canvas.
 @group(0) @binding(4) var<storage, read_write> splat : array<atomic<i32>>;
 
 // The desktop's loose uniforms, gathered into one struct. `canvas_res` is the
@@ -590,13 +588,19 @@ fn initial_position(index: u32, config: ConfigData) -> vec2f {
 // unbiased; left out until a weight that small is actually used.
 const SPLAT_SIGMA: f32 = 0.163;
 const SPLAT_RADIUS: f32 = 0.5;
-const DENSITY_FIXED_SCALE:f32=65536.0;
-const DENSITY_FIXED_MAX:i32=7680000;
+override WIDE_OCCUPANCY:bool=false;
 fn add_occupancy(i:u32,amount:f32) {
     let addition=i32(round(clamp(amount*DENSITY_FIXED_SCALE,0.0,f32(DENSITY_FIXED_MAX))));
+    if(WIDE_OCCUPANCY){
+        // Canvas consumes both limbs only after every entity invocation completes.
+        let old=bitcast<u32>(atomicAdd(&splat[i],addition));
+        if(old>0xffffffffu-u32(addition)){atomicAdd(&splat[i+1u],1);}
+        return;
+    }
     loop {
         let old=atomicLoad(&splat[i]);
         let next=min(old+addition,DENSITY_FIXED_MAX);
+        if (NETWORK_MODE == 2u && next == old) { return; }
         let changed=atomicCompareExchangeWeak(&splat[i],old,next);
         if(changed.exchanged){break;}
     }
@@ -657,7 +661,7 @@ fn deposit(index: u32, pos: vec2f, vel: vec2f, size: f32, weight: f32) {
     // Clamped inside i32 before converting; a single deposit that large is
     // already far past what the canvas can hold (see SPLAT_FIXED_SCALE).
     let fixed = vec2i(round(clamp(value, vec2f(-2.0e9), vec2f(2.0e9))));
-    let i = (pixel.y * u32(res.x) + pixel.x) * 3u;
+    let i = (pixel.y * u32(res.x) + pixel.x) * select(3u,4u,WIDE_OCCUPANCY);
     atomicAdd(&splat[i], fixed.x);
     atomicAdd(&splat[i + 1u], fixed.y);
     if(BRAIN_REVISION>=3u && NETWORK_MODE!=0u){add_occupancy(i+2u,amount*premult);}

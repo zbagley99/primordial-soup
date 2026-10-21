@@ -626,6 +626,315 @@ mod native {
             json!({"window":window,"preset":"Tangle","world":0.5,"particles":sizing.entity_count,"frozen_after_physics_steps":64,"workgroup":workgroup,"rendered_once":true,"cases":cases,"measurement_note":"Native production-equivalent readback and PNG paths, alternating pairs on one unchanged GPU texture. Transfer wall time includes allocation, encoding, submission and map wait. Pixel and PNG times are CPU wall times on one low-priority CPU. Buffer counts are logical allocations, not RSS or driver heap usage."}),
         )
     }
+    fn benchmark_project(args: &[String]) -> Result<Project> {
+        use primordial_soup::network::Mode;
+        let option = |key: &str| -> Result<Option<&str>> {
+            args.iter()
+                .position(|v| v == key)
+                .map(|i| {
+                    args.get(i + 1)
+                        .map(String::as_str)
+                        .with_context(|| format!("{key} needs a value"))
+                })
+                .transpose()
+        };
+        let file = option("--project-file")?;
+        let preset = option("--preset")?;
+        let mode = option("--network-mode")?;
+        let revision = option("--network-revision")?;
+        let seed = option("--network-seed")?;
+        let cohorts = option("--cohorts")?;
+        ensure!(
+            file.is_none()
+                || [preset, mode, revision, seed, cohorts]
+                    .iter()
+                    .all(Option::is_none),
+            "--project-file cannot be combined with preset or network overrides"
+        );
+        if let Some(path) = file {
+            return Project::from_json(
+                &std::fs::read_to_string(path)
+                    .with_context(|| format!("Read benchmark project {path}"))?,
+            );
+        }
+        let mut project = if let Some(name) = preset {
+            primordial_soup::config::presets()
+                .into_iter()
+                .find(|(preset, _)| *preset == name)
+                .with_context(|| format!("Unknown preset {name}"))?
+                .1
+        } else {
+            Project::default()
+        };
+        let seed = seed.map(str::parse::<f64>).transpose()?;
+        ensure!(
+            seed.is_none_or(|v| v.is_finite() && (0.0..=1.0).contains(&v)),
+            "Network seed must be finite and in 0..=1"
+        );
+        let config = project.config_mut();
+        if let Some(mode) = mode {
+            let mode = match mode {
+                "fourier" => Mode::Fourier,
+                "mlp" => Mode::Mlp,
+                "gru" => Mode::Gru,
+                _ => anyhow::bail!("Network mode must be fourier, mlp or gru"),
+            };
+            config.switch_mode(mode, seed.unwrap_or(config.mutation_seed));
+        }
+        if let Some(revision) = revision {
+            let revision: u32 = revision.parse()?;
+            ensure!(
+                config.mode() != Mode::Fourier && (1..=3).contains(&revision),
+                "Network revision must be 1..=3 for MLP or GRU"
+            );
+            let mode = config.mode();
+            config
+                .networks
+                .as_mut()
+                .context("Network revision needs an active bank")?
+                .banks
+                .iter_mut()
+                .find(|bank| bank.mode == mode)
+                .context("Missing active network bank")?
+                .revision = revision;
+        }
+        if let Some(seed) = seed {
+            config.mutation_seed = seed;
+        }
+        if let Some(cohorts) = cohorts {
+            let cohorts: u32 = cohorts.parse()?;
+            ensure!(
+                (1..=64).contains(&cohorts),
+                "Benchmark cohorts must be 1..=64"
+            );
+            config.cohorts = cohorts;
+        }
+        config.networks = config.normalized_networks();
+        project.validate()?;
+        Ok(project)
+    }
+
+    fn bytes_hash(bytes: &[u8]) -> String {
+        let hash = bytes.iter().fold(0xcbf29ce484222325u64, |hash, byte| {
+            (hash ^ u64::from(*byte)).wrapping_mul(0x100000001b3)
+        });
+        format!("{hash:016x}")
+    }
+
+    fn canonical_splat(native: &[u8], pixels: usize, stride: usize) -> Result<Vec<u8>> {
+        ensure!(stride == 3 || stride == 4, "Invalid splat stride {stride}");
+        ensure!(
+            native.len() >= pixels * stride * 4,
+            "Splat allocation shorter than active layout"
+        );
+        let mut canonical = Vec::with_capacity(pixels * 12);
+        for pixel in native[..pixels * stride * 4].chunks_exact(stride * 4) {
+            canonical.extend_from_slice(&pixel[..8]);
+            let low = u32::from_le_bytes(pixel[8..12].try_into().unwrap());
+            let occupancy = if stride == 4 {
+                let high = u32::from_le_bytes(pixel[12..16].try_into().unwrap());
+                if high != 0 {
+                    7_680_000
+                } else {
+                    low.min(7_680_000)
+                }
+            } else {
+                low
+            };
+            canonical.extend_from_slice(&occupancy.to_le_bytes());
+        }
+        Ok(canonical)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn benchmark_state(
+        d: &wgpu::Device,
+        q: &wgpu::Queue,
+        engine: &Engine,
+        renderer: &Renderer,
+        project: &Project,
+        path: &str,
+        rendered: bool,
+        entities: &[u8],
+    ) -> Result<serde_json::Value> {
+        let directory = Path::new(path);
+        std::fs::create_dir_all(directory)?;
+        let mut files = serde_json::Map::new();
+        let mut save = |name: &str, bytes: &[u8]| -> Result<()> {
+            std::fs::write(directory.join(name), bytes)?;
+            files.insert(
+                name.into(),
+                json!({"bytes":bytes.len(),"fnv1a64":bytes_hash(bytes)}),
+            );
+            Ok(())
+        };
+        save("entities.bin", entities)?;
+        for (name, buffer) in [
+            ("configs.bin", &engine.configs),
+            ("brain-memory.bin", &engine.brain_memory),
+        ] {
+            save(name, &read(d, q, buffer, buffer.size())?)?;
+        }
+        let layout = engine.splat_layout();
+        let native_splat = read(d, q, engine.splat_buffer(), layout.allocated_bytes)?;
+        let canonical = canonical_splat(
+            &native_splat,
+            engine.sizing.canvas[0] as usize * engine.sizing.canvas[1] as usize,
+            layout.active_lanes as usize,
+        )?;
+        save("splat.bin", &canonical)?;
+        std::fs::write(directory.join("splat-native.bin"), &native_splat)?;
+        let rules = engine.snapshot_rules(d, q);
+        save("rules.bin", &mapped(d, &rules)?)?;
+        for (index, canvas) in engine.canvas.iter().enumerate() {
+            save(
+                &format!("canvas-{index}.rgba16f"),
+                &tex(d, q, canvas, engine.sizing.canvas, 8)?,
+            )?;
+        }
+        save(
+            "field.rgba16f",
+            &tex(d, q, engine.audit_field_texture(), engine.field_size, 8)?,
+        )?;
+        if rendered {
+            save(
+                "output.rgba8",
+                &tex(d, q, renderer.output_texture(), renderer.size, 4)?,
+            )?;
+        }
+        let project_json = project.to_json()?;
+        std::fs::write(directory.join("project.json"), &project_json)?;
+        let metadata = json!({
+            "format":"primordial-benchmark-state-v1","byte_order":"little_endian",
+            "hash":"fnv1a64 (comparison aid; compare raw bytes for exactness)",
+            "project":project,"project_hash":primordial_soup::archive::hash_state(project),
+            "project_json_fnv1a64":bytes_hash(project_json.as_bytes()),
+            "completed_tick_count":engine.frame_count,"current_canvas":engine.current_canvas,
+            "particles":engine.sizing.entity_count,"canvas":engine.sizing.canvas,
+            "field":engine.field_size,"painted_field_sampling_active":engine.field_sampling_active(),
+            "rendered":rendered,"output":rendered.then_some(renderer.size),
+            "brain_memory_note":"entire buffer: both mirrored hidden streams and revision-3 heading state",
+            "captured_after_timing":true,"files":files,
+            "splat_representation": {
+                "layout":layout,"native_file":"splat-native.bin",
+                "native_bytes":native_splat.len(),"native_fnv1a64":bytes_hash(&native_splat),
+                "canonical_file":"splat.bin",
+                "canonical_encoding":"three i32 lanes: unchanged momentum x/y, occupancy saturated to 7680000; wide low/high unsigned bits"
+            }
+        });
+        std::fs::write(
+            directory.join("state.json"),
+            serde_json::to_string_pretty(&metadata)?,
+        )?;
+        Ok(metadata)
+    }
+
+    #[cfg(test)]
+    mod benchmark_project_tests {
+        use super::*;
+
+        fn project(flags: &[&str]) -> Result<Project> {
+            benchmark_project(&flags.iter().map(|v| (*v).to_owned()).collect::<Vec<_>>())
+        }
+
+        #[test]
+        fn canonical_splat_preserves_momentum_and_saturates_unsigned_limbs() {
+            let values = [
+                0x8000_0001u32,
+                0xffff_ffff,
+                31,
+                0,
+                7,
+                8,
+                0x8000_0000,
+                0,
+                9,
+                10,
+                1,
+                2,
+            ];
+            let native: Vec<u8> = values.iter().flat_map(|v| v.to_le_bytes()).collect();
+            let actual = canonical_splat(&native, 3, 4).unwrap();
+            let expected: Vec<u8> = [
+                0x8000_0001u32,
+                0xffff_ffff,
+                31,
+                7,
+                8,
+                7_680_000,
+                9,
+                10,
+                7_680_000,
+            ]
+            .iter()
+            .flat_map(|v| v.to_le_bytes())
+            .collect();
+            assert_eq!(actual, expected);
+            assert_eq!(canonical_splat(&expected, 3, 3).unwrap(), expected);
+            assert!(canonical_splat(&native[..8], 1, 4).is_err());
+        }
+
+        #[test]
+        fn default_project_is_unchanged_and_explicit_network_banks_are_reproducible() {
+            assert_eq!(project(&[]).unwrap(), Project::default());
+            for mode in ["mlp", "gru"] {
+                for revision in ["1", "2", "3"] {
+                    let flags = [
+                        "--network-mode",
+                        mode,
+                        "--network-revision",
+                        revision,
+                        "--network-seed",
+                        "0.25",
+                        "--cohorts",
+                        "16",
+                    ];
+                    let first = project(&flags).unwrap();
+                    assert_eq!(first, project(&flags).unwrap());
+                    assert_eq!(first.config().mode().label().to_lowercase(), mode);
+                    assert_eq!(first.config().network_revision().to_string(), revision);
+                    assert_eq!(first.config().bank().unwrap().seed, 0.25);
+                    assert_eq!(first.config().cohorts, 16);
+                    assert_eq!(
+                        first,
+                        Project::from_json(&first.to_json().unwrap()).unwrap()
+                    );
+                }
+            }
+        }
+
+        #[test]
+        fn invalid_network_overrides_and_mixed_project_sources_are_rejected() {
+            for flags in [
+                vec!["--network-seed", "NaN"],
+                vec!["--network-seed", "1.1"],
+                vec!["--network-mode", "gru", "--network-revision", "4"],
+                vec!["--network-revision", "3"],
+                vec!["--cohorts", "0"],
+                vec!["--network-mode"],
+                vec!["--project-file", "unused.json", "--network-mode", "gru"],
+                vec!["--project-file", "unused.json", "--preset", "Starcrossed"],
+            ] {
+                assert!(project(&flags).is_err(), "Accepted {flags:?}");
+            }
+        }
+
+        #[test]
+        fn project_file_preserves_the_serialized_project() {
+            let mut expected =
+                project(&["--network-mode", "gru", "--network-seed", "0.125"]).unwrap();
+            expected.notes = "Exact imported benchmark fixture".into();
+            let path = std::env::temp_dir().join(format!(
+                "primordial-benchmark-project-{}.json",
+                std::process::id()
+            ));
+            std::fs::write(&path, expected.to_json().unwrap()).unwrap();
+            let imported = project(&["--project-file", path.to_str().unwrap()]);
+            std::fs::remove_file(path).unwrap();
+            assert_eq!(imported.unwrap(), expected);
+        }
+    }
+
     fn benchmark(
         d: &wgpu::Device,
         q: &wgpu::Queue,
@@ -698,16 +1007,7 @@ mod native {
             .map(|_| value("--label", ""))
             .transpose()?;
         let s = sizing_for(world, 1.0)?;
-        let p = if args.iter().any(|v| v == "--preset") {
-            let name = value("--preset", "")?;
-            primordial_soup::config::presets()
-                .into_iter()
-                .find(|(preset, _)| *preset == name)
-                .with_context(|| format!("Unknown preset {name}"))?
-                .1
-        } else {
-            Project::default()
-        };
+        let p = benchmark_project(&args)?;
         let mut e = Engine::new(d, q, s, &p, workgroup)?;
         if args.iter().any(|v| v == "--active-empty-field") {
             let _ = e.field_texture(q);
@@ -915,6 +1215,20 @@ mod native {
             measured_ticks == if render_only { 0 } else { frames * steps },
             "Unexpected measured physics tick count"
         );
+        let entities = read(d, q, &e.entities, u64::from(s.entity_count) * 32)?;
+        finite_particles(&entities)?;
+        let live_particles = entities
+            .chunks_exact(32)
+            .filter(|entity| i32::from_le_bytes(entity[20..24].try_into().unwrap()) >= 0)
+            .count();
+        let state = args
+            .iter()
+            .position(|v| v == "--benchmark-state")
+            .map(|_| {
+                let path = value("--benchmark-state", "")?;
+                benchmark_state(d, q, &e, &r, &p, &path, !physics_only, &entities)
+            })
+            .transpose()?;
         if let Some(path) = shot {
             save_png(d, q, r.output_texture(), size, path)?;
         }
@@ -941,9 +1255,25 @@ mod native {
             Some(gpu.iter().sum::<f64>() / gpu.len() as f64)
         };
         let simulation_memory = e.allocated_bytes();
+        let entity_per_tick = if render_only {
+            Vec::new()
+        } else {
+            stages
+                .iter()
+                .map(|sample| sample[0] / f64::from(steps))
+                .collect()
+        };
         let raw_samples = json!({"gpu_ms":gpu,"cpu_encode_ms":cpu,"cpu_prepare_ms":preparation,"cpu_submit_ms":submits,"completed_wait_ms":waits,"completed_frame_ms":complete,"gpu_stage_ms":stages,"gpu_detail_ms":details});
         let mut report = json!({
             "label":label,"preset":p.name,"project":p,"preferences":prefs,"style":style,
+            "project_hash":primordial_soup::archive::hash_state(&p),
+            "project_json_fnv1a64":bytes_hash(p.to_json()?.as_bytes()),
+            "network_mode":p.config().mode(),"network_revision":p.config().network_revision(),
+            "network_seed":p.config().mutation_seed,"cohorts":p.config().cohorts,
+            "network_configurations":p.configs.iter().map(|config| json!({"mode":config.mode(),"revision":config.network_revision(),"seed":config.mutation_seed,"cohorts":config.cohorts,"parameters":config.network_parameters()})).collect::<Vec<_>>(),
+            "actual_live_particles":live_particles,"actual_dead_particles":s.entity_count as usize-live_particles,
+            "benchmark_state":state,"entity_update_ms_per_tick":percentiles(entity_per_tick),
+            "entity_update_timing_note":"Detailed-profile entity stage divided by simulation ticks; null for render-only or total-only runs. Do not compare detailed-profile totals against total-only acceptance timing.",
             "workload":if render_only {"render-only"} else if physics_only {"physics-only"} else {"combined"},
             "camera":{"zoom":camera.zoom,"pan":camera.pan,"trail_mode":camera.trail_mode,"anchor_method":if zoom>1.0 && setup_ticks>0 {"densest_64x64_world_bin_mean"}else{"world_center"},"anchor_bin_population":anchor_count,"fixed_during_run":true},
             "setup_ticks":setup_ticks,"measured_start_tick":measured_start_tick,"completed_tick_count":e.frame_count,"measured_ticks":measured_ticks,
@@ -1778,6 +2108,22 @@ mod native {
         workgroup: u32,
     ) -> Result<serde_json::Value> {
         use primordial_soup::cells::Style;
+        let args: Vec<String> = std::env::args().collect();
+        let directory = |key: &str| -> Result<Option<&String>> {
+            args.iter()
+                .position(|arg| arg == key)
+                .map(|index| {
+                    args.get(index + 1)
+                        .filter(|path| !path.is_empty() && !path.starts_with("--"))
+                        .with_context(|| format!("{key} needs a directory"))
+                })
+                .transpose()
+        };
+        let capture_dir = directory("--capture-dir")?;
+        let baseline_dir = directory("--baseline-dir")?;
+        if let Some(dir) = capture_dir {
+            std::fs::create_dir_all(dir)?;
+        }
         let n = 262_145u32;
         let mut project = Project::default();
         project.world.boundary_conditions = 1;
@@ -1829,6 +2175,7 @@ mod native {
             ("compact4096", 4096, false),
             ("fallback_dense", n, false),
             ("wrapped_edge", 32, true),
+            ("empty", 0, false),
         ] {
             for (i, particle) in particles.iter_mut().enumerate() {
                 particle[0] = if edge { 0.999f32.to_bits() } else { 0 };
@@ -1842,7 +2189,15 @@ mod native {
                 zoom: if edge { 1.0 } else { 100.0 },
                 ..Default::default()
             };
-            for (samples, highlight) in [(1, 0.0f32), (4, -1.0), (1, 1.0), (1, 0.0)] {
+            for (samples, highlight, membranes) in [
+                (1, 0.0f32, 1.0),
+                (4, -1.0, 1.0),
+                (1, 1.0, 1.0),
+                (1, 0.0, 1.0),
+                (1, -1.0, 0.0),
+                (1, -1.0, 1.0),
+            ] {
+                prefs.cells.membranes = membranes;
                 let mut snapshots = Vec::new();
                 for renderer in &mut renderers {
                     cells_frame(
@@ -1884,6 +2239,29 @@ mod native {
                     ));
                 }
                 let reference = &snapshots[0];
+                if capture_dir.is_some() || baseline_dir.is_some() {
+                    for (variant, snapshot) in snapshots.iter().enumerate() {
+                        let label =
+                            format!("{name}-case{}-variant{variant}.bin", results.len() / 2);
+                        let bytes = [
+                            bytemuck::cast_slice(snapshot.0.as_slice()),
+                            bytemuck::cast_slice(snapshot.1.as_slice()),
+                            bytemuck::cast_slice(snapshot.2.as_slice()),
+                            snapshot.3.as_slice(),
+                            snapshot.6.as_slice(),
+                        ]
+                        .concat();
+                        if let Some(dir) = baseline_dir {
+                            ensure!(
+                                bytes == std::fs::read(Path::new(dir).join(&label))?,
+                                "Campaign baseline differs at {label}"
+                            );
+                        }
+                        if let Some(dir) = capture_dir {
+                            std::fs::write(Path::new(dir).join(label), bytes)?;
+                        }
+                    }
+                }
                 ensure!(
                     reference.5 == if count == n { 1 } else { 0 },
                     "Unexpected planner mode in tiled fixture {name}"
@@ -1899,7 +2277,12 @@ mod native {
                     let selection_error = maximum_error(&reference.1, &candidate.1);
                     let membrane_error = maximum_error(&reference.2, &candidate.2);
                     let mass = |v: &[f32]| v.chunks_exact(4).map(|p| f64::from(p[3])).sum::<f64>();
-                    let mass_error = (mass(&candidate.0) / mass(&reference.0) - 1.0).abs();
+                    let reference_mass = mass(&reference.0);
+                    let mass_error = if reference_mass == 0.0 {
+                        mass(&candidate.0).abs()
+                    } else {
+                        (mass(&candidate.0) / reference_mass - 1.0).abs()
+                    };
                     let max_pixel_error = reference
                         .3
                         .iter()
@@ -1936,7 +2319,7 @@ mod native {
                         "Tiled nearest membrane site keys differ at {name}"
                     );
                     let state = candidate.4.as_ref().context("Missing tiled state")?;
-                    if index == 2 {
+                    if index == 2 && count > 0 {
                         ensure!(
                             state["enabled"] == 0,
                             "Forced-capacity fixture did not fall back"
@@ -1954,7 +2337,7 @@ mod native {
                             "Compact fixture did not exercise tiled path"
                         );
                     }
-                    results.push(json!({"fixture":name,"samples":samples,"highlight":highlight,"variant":if index==1 {"tiled"}else{"forced_capacity_fallback"},"planner_mode":candidate.5,"state":state,"image_max_abs_error":image_error,"selection_max_abs_error":selection_error,"membrane_max_abs_error":membrane_error,"membrane_site_keys_exact":true,"mass_relative_error":mass_error,"final_pixel_max_error_255":max_pixel_error}));
+                    results.push(json!({"fixture":name,"samples":samples,"highlight":highlight,"membranes":membranes,"variant":if index==1 {"tiled"}else{"forced_capacity_fallback"},"planner_mode":candidate.5,"state":state,"image_max_abs_error":image_error,"selection_max_abs_error":selection_error,"membrane_max_abs_error":membrane_error,"membrane_site_keys_exact":true,"mass_relative_error":mass_error,"final_pixel_max_error_255":max_pixel_error}));
                 }
             }
         }
@@ -1963,7 +2346,7 @@ mod native {
             "Tiled rendering advanced simulation"
         );
         Ok(
-            json!({"reference":"analytic pixel distances; compatibility with original separate","same_engine_particles":true,"simulation_unchanged":true,"cases":results}),
+            json!({"reference":"analytic pixel distances; compatibility with original separate","campaign_baseline_exact":baseline_dir.is_some(),"same_engine_particles":true,"simulation_unchanged":true,"cases":results}),
         )
     }
     fn cells_frame(
@@ -2166,17 +2549,28 @@ mod native {
                 selection_transitions.push(json!({"live":count,"planner_mode":mode,"highlight":highlight,"samples":4,"chosen_count":chosen_count,"selection_mass_relative_error":relative_error}));
             }
         }
-        // Empty live population produces exactly paper, including letterboxing.
+        // Empty live population preserves the background and one-pixel world outline.
         for v in &mut particles {
             v[5] = u32::MAX;
         }
         q.write_buffer(&e.entities, 0, bytemuck::cast_slice(&particles));
         cells_frame(d, q, &e, &mut r, &p, &prefs, &Camera::default(), 1, -1.0)?;
         let empty = tex(d, q, r.clean_texture()?, [256, 256], 4)?;
-        ensure!(
-            empty.chunks_exact(4).all(|v| v == &empty[..4]),
-            "Empty background is not constant"
-        );
+        let background_index = (8 * 256 + 8) * 4;
+        let background = &empty[background_index..background_index + 4];
+        ensure!(background[3] == 255, "Empty background is not opaque");
+        for (i, pixel) in empty.chunks_exact(4).enumerate() {
+            let x = i % 256;
+            let y = i / 256;
+            if x == 0 || x == 255 || y == 0 || y == 255 {
+                ensure!(
+                    pixel == [255, 255, 255, 255],
+                    "Empty world outline is not opaque white at {x},{y}"
+                );
+            } else {
+                ensure!(pixel == background, "Empty background differs at {x},{y}");
+            }
+        }
         // A wrapped edge particle must contribute on both edges; nonwrap must not.
         particles[0][0] = 0.999f32.to_bits();
         particles[0][5] = 0;
@@ -2591,6 +2985,15 @@ mod native {
         let mut distinguishing_padding = 0usize;
         for y in 0..256 {
             for x in 0..256 {
+                if x == 0 || x == 255 || y == 0 || y == 255 {
+                    let i = (y * 256 + x) * 4;
+                    ensure!(
+                        base[i..i + 4] == [255, 255, 255, 255]
+                            && output[i..i + 4] == [255, 255, 255, 255],
+                        "Field overlay changed opaque white world outline at {x},{y}"
+                    );
+                    continue;
+                }
                 let p = [x as f64 + 0.5 + pad, y as f64 + 0.5 + pad];
                 let displaced = delta(p);
                 let g = overlay_strength(x as f64 + 0.5 + displaced[0]);
@@ -2619,7 +3022,7 @@ mod native {
             "Field overlay disagrees with displayed map: {max_overlay_error} channel levels"
         );
         Ok(
-            json!({"independent_mapped_pick":true,"circle_and_line_footprint_texels":checked,"texels_distinguishing_cursor_only":changed,"map_max_reference_displacement":0.9,"field_overlay":{"pixels":65536,"max_rgb_error_255":max_overlay_error,"channels_distinguishing_stale_padding":distinguishing_padding}}),
+            json!({"independent_mapped_pick":true,"circle_and_line_footprint_texels":checked,"texels_distinguishing_cursor_only":changed,"map_max_reference_displacement":0.9,"field_overlay":{"border_pixels":1020,"interior_pixels":64516,"max_rgb_error_255":max_overlay_error,"channels_distinguishing_stale_padding":distinguishing_padding}}),
         )
     }
     fn cells_density_checks(
@@ -2906,12 +3309,17 @@ mod native {
                     )?;
                     let channel = if theme == Theme::Dark { 2 } else { 0 };
                     let pigment = if theme == Theme::Dark { 1.0 } else { 0.2 };
-                    let background = pixels[channel] as f64 / 255.0;
+                    let background_index = ((8 * size[0] + 8) * 4) as usize;
+                    let background = pixels[background_index + channel] as f64 / 255.0;
+                    let normalization = pigment - background;
+                    ensure!(
+                        normalization.is_finite() && normalization != 0.0,
+                        "Wash background normalization invalid: {background}, pigment {pigment}, {size:?} {theme:?} {phase:?}"
+                    );
                     let alpha: Vec<f64> = pixels
                         .chunks_exact(4)
                         .map(|v| {
-                            ((v[channel] as f64 / 255.0 - background) / (pigment - background))
-                                .max(0.0)
+                            ((v[channel] as f64 / 255.0 - background) / normalization).max(0.0)
                         })
                         .collect();
                     let mut mass = 0.0;
@@ -3022,13 +3430,19 @@ mod native {
                     let selected = tex(d, q, r.output_texture(), size, 4)?;
                     ensure!(
                         selected[..4] == pixels[..4],
+                        "Selection changed the world border"
+                    );
+                    ensure!(
+                        selected[background_index..background_index + 4]
+                            == pixels[background_index..background_index + 4],
                         "Selection/letterbox uses pending theme"
                     );
                     let index = ((center[1].floor() as u32 * size[0] + center[0].floor() as u32)
                         * 4) as usize;
                     for j in 0..3 {
-                        let expected = pixels[j] as f64
-                            + (pixels[index + j] as f64 - pixels[j] as f64) * 0.125;
+                        let expected = pixels[background_index + j] as f64
+                            + (pixels[index + j] as f64 - pixels[background_index + j] as f64)
+                                * 0.125;
                         ensure!(
                             (selected[index + j] as f64 - expected).abs() < 1.5,
                             "Selection theme mismatch"
@@ -3144,8 +3558,28 @@ mod native {
         let mut renderer = Renderer::new(d, &engine, size)?;
         renderer.commit_cells(renderer.prepare_cells(d, &engine, &prefs.cells)?);
         let mut results = Vec::new();
+        let mut dead = particles.clone();
+        for particle in &mut dead {
+            particle[5] = u32::MAX;
+        }
         for theme in [Theme::Dark, Theme::Light] {
             prefs.cells.theme = theme;
+            q.write_buffer(&engine.entities, 0, bytemuck::cast_slice(&dead));
+            cells_frame(
+                d,
+                q,
+                &engine,
+                &mut renderer,
+                &project,
+                &prefs,
+                &Camera::default(),
+                1,
+                -1.0,
+            )?;
+            let background_pixels = tex(d, q, renderer.clean_texture()?, size, 4)?;
+            let background_index = ((8 * size[0] + 8) * 4) as usize;
+            let bg = &background_pixels[background_index..background_index + 3];
+            q.write_buffer(&engine.entities, 0, &before);
             let mut signals = Vec::new();
             let mut base_mass = None;
             for threshold in [0.0, 0.4, 1.0, 4.0] {
@@ -3173,8 +3607,6 @@ mod native {
                 } else {
                     base_mass = Some(mass);
                 }
-                // Compare contrast energy with paper/black sampled far from sources.
-                let bg = &pixels[0..3];
                 let energy = |rect: [usize; 4]| -> f64 {
                     let mut sum = 0u64;
                     for y in rect[1]..rect[3] {
@@ -4082,8 +4514,18 @@ mod native {
         d.on_uncaptured_error(Arc::new(move |e: wgpu::Error| {
             captured.lock().unwrap().push(e.to_string());
         }));
-        let checks = if args.iter().any(|v| v == "--network-contracts") {
-            primordial_soup::gpu::audit::contracts(&d, &q, workgroup)?
+        let checks = if args.iter().any(|v| v == "--network-pair-contracts") {
+            primordial_soup::gpu::audit::paired_contracts(
+                &d,
+                &q,
+                args.windows(2)
+                    .find(|pair| pair[0] == "--pair-shader")
+                    .map(|pair| pair[1].as_str()),
+            )?
+        } else if args.iter().any(|v| v == "--network-contracts") {
+            let mut checks = primordial_soup::gpu::audit::contracts(&d, &q, workgroup)?;
+            checks["occupancy"] = primordial_soup::gpu::audit::occupancy_contracts(&d, &q)?;
+            checks
         } else if args.iter().any(|v| v == "--network-evaluation") {
             primordial_soup::gpu::audit::evaluate(
                 &d,
@@ -4155,7 +4597,7 @@ mod native {
             "GPU validation errors: {:?}",
             *errors.lock().unwrap()
         );
-        let report = json!({"mode":if args.iter().any(|v|v == "--network-evaluation"){"network-evaluation"}else if args.iter().any(|v|v == "--network-contracts"){"network-contracts"}else if args.iter().any(|v|v == "--field-check"){"field-check"}else if args.iter().any(|v|v == "--cells-tiled-check"){"cells-tiled-check"}else if args.iter().any(|v|v == "--cells-zoom"){"cells-zoom"}else if args.iter().any(|v|v == "--cells-structure"){"cells-structure"}else if args.iter().any(|v|v == "--cells-video"){"cells-video"}else if args.iter().any(|v|v == "--cells-timing"){"cells-timing"}else if args.iter().any(|v|v == "--cells"){"cells"}else if args.iter().any(|v|v == "--networks"){"networks"}else if args.iter().any(|v|v == "--numerical"){"numerical"}else if allocation_mode{"allocation-control"}else if capture_mode{"capture-benchmark"}else if benchmark_mode{"benchmark"}else if video_mode{"video-smoke"}else{"smoke"},"adapter":{"name":info.name,"vendor":info.vendor,"device":info.device,"backend":format!("{:?}",info.backend),"device_type":format!("{:?}",info.device_type),"driver":info.driver,"driver_info":info.driver_info},"checks":checks,"uncaptured_errors":[]});
+        let report = json!({"mode":if args.iter().any(|v|v == "--network-pair-contracts"){"network-pair-contracts"}else if args.iter().any(|v|v == "--network-evaluation"){"network-evaluation"}else if args.iter().any(|v|v == "--network-contracts"){"network-contracts"}else if args.iter().any(|v|v == "--field-check"){"field-check"}else if args.iter().any(|v|v == "--cells-tiled-check"){"cells-tiled-check"}else if args.iter().any(|v|v == "--cells-zoom"){"cells-zoom"}else if args.iter().any(|v|v == "--cells-structure"){"cells-structure"}else if args.iter().any(|v|v == "--cells-video"){"cells-video"}else if args.iter().any(|v|v == "--cells-timing"){"cells-timing"}else if args.iter().any(|v|v == "--cells"){"cells"}else if args.iter().any(|v|v == "--networks"){"networks"}else if args.iter().any(|v|v == "--numerical"){"numerical"}else if allocation_mode{"allocation-control"}else if capture_mode{"capture-benchmark"}else if benchmark_mode{"benchmark"}else if video_mode{"video-smoke"}else{"smoke"},"adapter":{"name":info.name,"vendor":info.vendor,"device":info.device,"backend":format!("{:?}",info.backend),"device_type":format!("{:?}",info.device_type),"driver":info.driver,"driver_info":info.driver_info},"checks":checks,"uncaptured_errors":[]});
         let text = serde_json::to_string_pretty(&report)?;
         if let Some(path) = output {
             if let Some(p) = Path::new(path).parent() {

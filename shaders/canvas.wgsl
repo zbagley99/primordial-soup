@@ -35,7 +35,7 @@
 
 struct CanvasUniforms {
     world : WorldData,
-    // x: frame_count(i)   yzw: reserved
+    // x: frame_count(i)   y: splat lane count(u)   zw: reserved
     flags : vec4f,
 }
 
@@ -54,9 +54,15 @@ fn frame_count() -> i32 { return bitcast<i32>(u.flags.x); }
 // so the fragment's pixel is the accumulator's -- indexed row-major from the
 // top, as `deposit` writes it.
 fn take_splat(pixel: vec2u) -> vec4f {
-    let i = (pixel.y * textureDimensions(canvas_texture, 0).x + pixel.x) * 3u;
+    let stride=select(3u,4u,bitcast<u32>(u.flags.y)==4u);
+    let i = (pixel.y * textureDimensions(canvas_texture, 0).x + pixel.x) * stride;
     let value = vec2f(f32(splat[i]), f32(splat[i + 1u])) / SPLAT_FIXED_SCALE;
-    return vec4f(value, f32(splat[i+2u])*(CANVAS_VALUE_SCALE/65536.0), 0.0);
+    var occupancy=splat[i+2u];
+    if(stride==4u){
+        let low=bitcast<u32>(occupancy);
+        occupancy=i32(select(low,u32(DENSITY_FIXED_MAX),splat[i+3u]!=0 || low>=u32(DENSITY_FIXED_MAX)));
+    }
+    return vec4f(value, f32(occupancy)*(CANVAS_VALUE_SCALE/DENSITY_FIXED_SCALE), 0.0);
 }
 
 struct VsOut {

@@ -163,6 +163,14 @@ pub struct Pick {
     pub rule: Vec<f64>,
     pub mode: crate::network::Mode,
 }
+#[cfg(not(target_arch = "wasm32"))]
+#[derive(Clone, Copy, Debug, serde::Serialize)]
+pub struct SplatLayout {
+    pub active_lanes: u32,
+    pub capacity_lanes: u32,
+    pub allocated_bytes: u64,
+}
+
 pub struct PreparedProject {
     configs: wgpu::Buffer,
     count: u32,
@@ -203,6 +211,8 @@ pub struct Engine {
     uniform_stride: u32,
     uniforms: wgpu::Buffer,
     canvas_uniforms: wgpu::Buffer,
+    entity_uniform_words: Vec<u32>,
+    canvas_uniform_words: Vec<u32>,
     splat: wgpu::Buffer,
     freelist: wgpu::Buffer,
     entity_pipeline: wgpu::ComputePipeline,
@@ -448,6 +458,16 @@ impl Engine {
         project: &Project,
         workgroup: u32,
     ) -> Result<Self> {
+        Self::new_with_splat_lanes(d, q, s, project, workgroup, true)
+    }
+    fn new_with_splat_lanes(
+        d: &wgpu::Device,
+        q: &wgpu::Queue,
+        s: Sizing,
+        project: &Project,
+        workgroup: u32,
+        allow_wide: bool,
+    ) -> Result<Self> {
         project.validate()?;
         Self::preflight(d, s, workgroup)?;
         let storage = wgpu::BufferUsages::STORAGE
@@ -460,10 +480,14 @@ impl Engine {
         let (brain_weights, cohort_weights) = Self::make_brain_weights(d, q, project)?;
         let brain_memory = Self::make_brain_memory(d, s.entity_count, mode, revision)?;
         let brain_key = Self::brain_key(project);
+        let wide_bytes = u64::from(s.canvas[0]) * u64::from(s.canvas[1]) * 16;
+        let wide_capacity = allow_wide
+            && wide_bytes <= d.limits().max_storage_buffer_binding_size
+            && wide_bytes <= d.limits().max_buffer_size;
         let splat = buffer(
             d,
             "splat",
-            s.canvas[0] as u64 * s.canvas[1] as u64 * 12,
+            u64::from(s.canvas[0]) * u64::from(s.canvas[1]) * if wide_capacity { 16 } else { 12 },
             storage,
         );
         let freelist = buffer(d, "studio dummy free list", 8, storage);
@@ -595,6 +619,10 @@ impl Engine {
                 ("WORKGROUP_SIZE", workgroup as f64),
                 ("NETWORK_MODE", mode.id() as f64),
                 ("BRAIN_REVISION", revision as f64),
+                (
+                    "WIDE_OCCUPANCY",
+                    f64::from(Self::active_splat_lanes(mode, revision, wide_capacity) == 4),
+                ),
             ],
         );
         let pl = d.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
@@ -825,6 +853,8 @@ impl Engine {
             uniform_stride: stride,
             uniforms,
             canvas_uniforms,
+            entity_uniform_words: Vec::new(),
+            canvas_uniform_words: Vec::new(),
             splat,
             freelist,
             entity_pipeline,
@@ -1009,6 +1039,16 @@ impl Engine {
                     ("WORKGROUP_SIZE", self.workgroup as f64),
                     ("NETWORK_MODE", mode.id() as f64),
                     ("BRAIN_REVISION", revision as f64),
+                    (
+                        "WIDE_OCCUPANCY",
+                        f64::from(
+                            Self::active_splat_lanes(
+                                mode,
+                                revision,
+                                self.splat_capacity_lanes() == 4,
+                            ) == 4,
+                        ),
+                    ),
                 ],
             ))
         } else {
@@ -1073,6 +1113,11 @@ impl Engine {
             revision,
         } = prepared;
         self.cancel_pick();
+        if Self::active_splat_lanes(mode, revision, self.splat_capacity_lanes() == 4)
+            != self.splat_stride()
+        {
+            self.prepared_steps = 0;
+        }
         self.configs = b;
         self.config_count = n;
         self.brain_weights = weights;
@@ -1245,6 +1290,29 @@ impl Engine {
             + self.field_size[0] as u64 * self.field_size[1] as u64 * 8
             + 8
     }
+    fn active_splat_lanes(mode: crate::network::Mode, revision: u32, wide_capacity: bool) -> u32 {
+        if wide_capacity && revision >= 3 && mode != crate::network::Mode::Fourier {
+            4
+        } else {
+            3
+        }
+    }
+    fn splat_capacity_lanes(&self) -> u32 {
+        (self.splat.size()
+            / (u64::from(self.sizing.canvas[0]) * u64::from(self.sizing.canvas[1]) * 4))
+            as u32
+    }
+    fn splat_stride(&self) -> u32 {
+        Self::active_splat_lanes(self.mode, self.revision, self.splat_capacity_lanes() == 4)
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn splat_layout(&self) -> SplatLayout {
+        SplatLayout {
+            active_lanes: self.splat_stride(),
+            capacity_lanes: self.splat_capacity_lanes(),
+            allocated_bytes: self.splat.size(),
+        }
+    }
     /// Fixed-point deposit storage, exposed for GPU validation readback.
     pub fn splat_buffer(&self) -> &wgpu::Buffer {
         &self.splat
@@ -1280,8 +1348,14 @@ impl Engine {
         self.wrap = usize::from(w.boundary_conditions == 1);
         let world = w.pack(self.sizing.sqrt_world_size, self.config_count);
         let field_active = u32::from(self.field_sampling_active());
-        let mut entity = vec![0u32; steps as usize * self.uniform_stride as usize / 4];
-        let mut canvas = entity.clone();
+        let splat_lanes = self.splat_stride();
+        let words = steps as usize * self.uniform_stride as usize / 4;
+        self.entity_uniform_words.clear();
+        self.entity_uniform_words.resize(words, 0);
+        self.canvas_uniform_words.clear();
+        self.canvas_uniform_words.resize(words, 0);
+        let entity = &mut self.entity_uniform_words;
+        let canvas = &mut self.canvas_uniform_words;
         for i in 0..steps {
             let offset = i as usize * self.uniform_stride as usize / 4;
             let e = &mut entity[offset..offset + 24];
@@ -1305,10 +1379,11 @@ impl Engine {
             let c = &mut canvas[offset..offset + 12];
             c[..8].copy_from_slice(&world);
             c[8] = e[16];
+            c[9] = splat_lanes;
         }
         if steps > 0 {
-            q.write_buffer(&self.uniforms, 0, bytemuck::cast_slice(&entity));
-            q.write_buffer(&self.canvas_uniforms, 0, bytemuck::cast_slice(&canvas));
+            q.write_buffer(&self.uniforms, 0, bytemuck::cast_slice(entity));
+            q.write_buffer(&self.canvas_uniforms, 0, bytemuck::cast_slice(canvas));
         }
         Ok(())
     }
@@ -1374,7 +1449,13 @@ impl Engine {
         // Drain the deposits for the next step. A transfer clear is far cheaper
         // than zeroing from the canvas fragment shader (~0.23 ms per 1024² step
         // measured on an RTX 3090), and it is part of the trail stage.
-        encoder.clear_buffer(&self.splat, 0, None);
+        let clear_size = (self.frame_count != 0).then(|| {
+            u64::from(self.sizing.canvas[0])
+                * u64::from(self.sizing.canvas[1])
+                * u64::from(self.splat_stride())
+                * 4
+        });
+        encoder.clear_buffer(&self.splat, 0, clear_size);
         if let Some(p) = profile.as_mut() {
             p.end(encoder, Stage::Trails, trails);
         }
