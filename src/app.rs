@@ -166,6 +166,13 @@ enum InspectorAction {
     Undo,
 }
 
+#[derive(Clone, Copy)]
+enum HistoryAction {
+    Undo,
+    Redo,
+    PreviousGeneration,
+}
+
 pub struct SoupApp {
     context: egui::Context,
     pending_project: Option<PendingProject>,
@@ -1738,7 +1745,7 @@ impl SoupApp {
             self.set_project(project, label, true, now, None);
         }
     }
-    fn undo(&mut self, redo: bool) {
+    fn navigate_history(&mut self, action: HistoryAction) {
         if self.pending_project.is_some()
             || self.comparison_busy()
             || self.calibration.is_some()
@@ -1748,10 +1755,12 @@ impl SoupApp {
             self.notice = "Finish the current operation before undo/redo".into();
             return;
         }
+        let redo = matches!(action, HistoryAction::Redo);
         let mut history = self.history.clone();
         let next = if redo { history.redo() } else { history.undo() };
         if let Some(next) = next {
-            let reset = next.config().mode() != self.state.project.config().mode()
+            let reset = matches!(action, HistoryAction::PreviousGeneration)
+                || next.config().mode() != self.state.project.config().mode()
                 || next.config().network_revision()
                     != self.state.project.config().network_revision();
             self.queue_project(next, history, if redo { "Redo" } else { "Undo" }, reset);
@@ -2064,7 +2073,11 @@ impl SoupApp {
             self.reroll(true, now);
         }
         if pressed(Key::Z) {
-            self.undo(shifted(Key::Z));
+            self.navigate_history(if shifted(Key::Z) {
+                HistoryAction::Redo
+            } else {
+                HistoryAction::Undo
+            });
         }
         if pressed(Key::C) {
             if shifted(Key::C) {
@@ -2664,7 +2677,7 @@ impl SoupApp {
                 )
                 .clicked()
             {
-                self.undo(false);
+                self.navigate_history(HistoryAction::Undo);
                 ui.close();
             }
             if ui
@@ -2674,7 +2687,7 @@ impl SoupApp {
                 )
                 .clicked()
             {
-                self.undo(true);
+                self.navigate_history(HistoryAction::Redo);
                 ui.close();
             }
             if ui.button("Set Checkpoint (C)").clicked() {
@@ -2921,7 +2934,7 @@ impl SoupApp {
                             .add_enabled(self.history.can_undo(), egui::Button::new("Undo"))
                             .clicked()
                         {
-                            self.undo(false);
+                            self.navigate_history(HistoryAction::Undo);
                         }
                     });
                     return;
@@ -3337,7 +3350,7 @@ impl SoupApp {
                     );
                 }
                 InspectorAction::Adopt => self.confirm_selection(),
-                InspectorAction::Undo => self.undo(false),
+                InspectorAction::Undo => self.navigate_history(HistoryAction::Undo),
             }
         }
     }
@@ -4154,7 +4167,7 @@ impl SoupApp {
                     self.held_view = None;
                 }
             } else {
-                self.undo(false);
+                self.navigate_history(HistoryAction::PreviousGeneration);
             }
         }
         let primary = !self.comparison_busy()
