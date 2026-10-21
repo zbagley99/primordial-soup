@@ -1,5 +1,7 @@
 name = "primordial-soup"
 compatibility_date = "2026-10-14"
+workers_dev = true
+preview_urls = true
 
 [assets]
 directory = "./dist"
