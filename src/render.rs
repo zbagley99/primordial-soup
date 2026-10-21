@@ -205,6 +205,28 @@ pub struct Renderer {
 }
 
 impl Renderer {
+    pub(crate) fn prepare_trail_bindings(
+        &self,
+        d: &wgpu::Device,
+        views: &[wgpu::TextureView; 2],
+    ) -> [wgpu::BindGroup; 2] {
+        std::array::from_fn(|i| {
+            group(
+                d,
+                &self.trail.get_bind_group_layout(1),
+                &[tex(0, &views[i]), samp(1, &self.sampler)],
+            )
+        })
+    }
+    pub(crate) fn commit_trail_bindings(&mut self, bindings: [wgpu::BindGroup; 2]) {
+        self.trail_textures = bindings;
+        self.samples_taken = 0;
+        self.bloom_valid = None;
+    }
+    /// Rebind after committing a project that replaces the trail texture pair.
+    pub fn rebind_trails(&mut self, d: &wgpu::Device, views: &[wgpu::TextureView; 2]) {
+        self.commit_trail_bindings(self.prepare_trail_bindings(d, views));
+    }
     pub fn new(d: &wgpu::Device, e: &Engine, size: [u32; 2]) -> Result<Self> {
         Self::new_with_export_target_policy(d, e, size, false)
     }

@@ -184,6 +184,19 @@ pub struct PreparedProject {
     pick: wgpu::BindGroup,
     mode: crate::network::Mode,
     revision: u32,
+    trails: Option<PreparedTrails>,
+}
+struct PreparedTrails {
+    canvas: [wgpu::Texture; 2],
+    views: [wgpu::TextureView; 2],
+    pipeline: wgpu::RenderPipeline,
+    entity_groups: [[wgpu::BindGroup; 2]; 2],
+    canvas_groups: [[wgpu::BindGroup; 2]; 2],
+}
+impl PreparedProject {
+    pub(crate) fn canvas_views(&self) -> Option<&[wgpu::TextureView; 2]> {
+        self.trails.as_ref().map(|trails| &trails.views)
+    }
 }
 pub struct Engine {
     interaction_layout: wgpu::BindGroupLayout,
@@ -231,6 +244,7 @@ pub struct Engine {
     entity_textures: [[wgpu::BindGroup; 2]; 2],
     samplers: [wgpu::Sampler; 2],
     camera_strengths: [f32; 2],
+    camera_field_view: wgpu::TextureView,
     canvas_textures: [[wgpu::BindGroup; 2]; 2],
     rules_dirty: bool,
     wrap: usize,
@@ -410,6 +424,77 @@ pub fn texture(
         view_formats: &[],
     })
 }
+fn entity_texture_groups(
+    d: &wgpu::Device,
+    layout: &wgpu::BindGroupLayout,
+    views: &[wgpu::TextureView; 2],
+    field: &wgpu::TextureView,
+    camera: &wgpu::TextureView,
+    samplers: &[wgpu::Sampler; 2],
+) -> [[wgpu::BindGroup; 2]; 2] {
+    std::array::from_fn(|wrap| {
+        std::array::from_fn(|i| {
+            group(
+                d,
+                layout,
+                &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: wgpu::BindingResource::TextureView(&views[i]),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: wgpu::BindingResource::Sampler(&samplers[wrap]),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 2,
+                        resource: wgpu::BindingResource::TextureView(field),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 3,
+                        resource: wgpu::BindingResource::Sampler(&samplers[wrap]),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 4,
+                        resource: wgpu::BindingResource::TextureView(camera),
+                    },
+                ],
+            )
+        })
+    })
+}
+fn canvas_texture_groups(
+    d: &wgpu::Device,
+    layout: &wgpu::BindGroupLayout,
+    views: &[wgpu::TextureView; 2],
+    samplers: &[wgpu::Sampler; 2],
+) -> [[wgpu::BindGroup; 2]; 2] {
+    std::array::from_fn(|wrap| {
+        std::array::from_fn(|i| {
+            group(
+                d,
+                layout,
+                &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: wgpu::BindingResource::TextureView(&views[i]),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: wgpu::BindingResource::Sampler(&samplers[wrap]),
+                    },
+                ],
+            )
+        })
+    })
+}
+fn trail_format(mode: crate::network::Mode) -> wgpu::TextureFormat {
+    if mode == crate::network::Mode::Fourier {
+        wgpu::TextureFormat::Rg16Float
+    } else {
+        CANVAS_FORMAT
+    }
+}
 impl Engine {
     pub fn preflight(d: &wgpu::Device, s: Sizing, workgroup: u32) -> Result<()> {
         let l = d.limits();
@@ -508,7 +593,7 @@ impl Engine {
             stride as u64 * MAX_STEPS as u64,
             wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         );
-        let canvas = std::array::from_fn(|_| texture(d, "canvas", s.canvas, CANVAS_FORMAT));
+        let canvas = std::array::from_fn(|_| texture(d, "canvas", s.canvas, trail_format(mode)));
         let canvas_views = std::array::from_fn(|i| canvas[i].create_view(&Default::default()));
         let ratio = s.canvas[0] as f64 / s.canvas[1] as f64;
         let field_size = if s.canvas[0] as u64 * s.canvas[1] as u64 <= 512 * 512 {
@@ -634,7 +719,7 @@ impl Engine {
             d,
             &module(d, "canvas.wgsl"),
             Some(&pl),
-            CANVAS_FORMAT,
+            trail_format(mode),
             None,
             wgpu::ColorWrites::ALL,
         );
@@ -685,54 +770,16 @@ impl Engine {
                 ..Default::default()
             })
         });
-        let entity_textures = std::array::from_fn(|wrap| {
-            std::array::from_fn(|i| {
-                group(
-                    d,
-                    &entity_tex_layout,
-                    &[
-                        wgpu::BindGroupEntry {
-                            binding: 0,
-                            resource: wgpu::BindingResource::TextureView(&canvas_views[i]),
-                        },
-                        wgpu::BindGroupEntry {
-                            binding: 1,
-                            resource: wgpu::BindingResource::Sampler(&samplers[wrap]),
-                        },
-                        wgpu::BindGroupEntry {
-                            binding: 2,
-                            resource: wgpu::BindingResource::TextureView(&field_view),
-                        },
-                        wgpu::BindGroupEntry {
-                            binding: 3,
-                            resource: wgpu::BindingResource::Sampler(&samplers[wrap]),
-                        },
-                        wgpu::BindGroupEntry {
-                            binding: 4,
-                            resource: wgpu::BindingResource::TextureView(&dummy_view),
-                        },
-                    ],
-                )
-            })
-        });
-        let canvas_textures = std::array::from_fn(|wrap| {
-            std::array::from_fn(|i| {
-                group(
-                    d,
-                    &canvas_tex_layout,
-                    &[
-                        wgpu::BindGroupEntry {
-                            binding: 0,
-                            resource: wgpu::BindingResource::TextureView(&canvas_views[i]),
-                        },
-                        wgpu::BindGroupEntry {
-                            binding: 1,
-                            resource: wgpu::BindingResource::Sampler(&samplers[wrap]),
-                        },
-                    ],
-                )
-            })
-        });
+        let entity_textures = entity_texture_groups(
+            d,
+            &entity_tex_layout,
+            &canvas_views,
+            &field_view,
+            &dummy_view,
+            &samplers,
+        );
+        let canvas_textures =
+            canvas_texture_groups(d, &canvas_tex_layout, &canvas_views, &samplers);
         let paint_uniform = buffer(
             d,
             "field brush",
@@ -873,6 +920,7 @@ impl Engine {
             entity_textures,
             samplers,
             camera_strengths: [0.0; 2],
+            camera_field_view: dummy_view,
             canvas_textures,
             rules_dirty: true,
             wrap: 0,
@@ -1082,7 +1130,44 @@ impl Engine {
                 entry(3, &self.pick_uniform, None),
             ],
         );
+        let trails = if trail_format(mode) != self.canvas[0].format() {
+            let canvas = std::array::from_fn(|_| {
+                texture(d, "prepared trails", self.sizing.canvas, trail_format(mode))
+            });
+            let views = std::array::from_fn(|i| canvas[i].create_view(&Default::default()));
+            let state_layout = self.canvas_pipeline.get_bind_group_layout(0);
+            let texture_layout = self.canvas_pipeline.get_bind_group_layout(1);
+            let layout = d.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: Some("prepared trail layout"),
+                bind_group_layouts: &[Some(&state_layout), Some(&texture_layout)],
+                immediate_size: 0,
+            });
+            Some(PreparedTrails {
+                pipeline: render_pipeline(
+                    d,
+                    &module(d, "canvas.wgsl"),
+                    Some(&layout),
+                    trail_format(mode),
+                    None,
+                    wgpu::ColorWrites::ALL,
+                ),
+                entity_groups: entity_texture_groups(
+                    d,
+                    &self.entity_pipeline.get_bind_group_layout(1),
+                    &views,
+                    &self.field_view,
+                    &self.camera_field_view,
+                    &self.samplers,
+                ),
+                canvas_groups: canvas_texture_groups(d, &texture_layout, &views, &self.samplers),
+                canvas,
+                views,
+            })
+        } else {
+            None
+        };
         Ok(PreparedProject {
+            trails,
             configs: b,
             count: n,
             weights,
@@ -1111,11 +1196,21 @@ impl Engine {
             pick,
             mode,
             revision,
+            trails,
         } = prepared;
         self.cancel_pick();
         if Self::active_splat_lanes(mode, revision, self.splat_capacity_lanes() == 4)
             != self.splat_stride()
         {
+            self.prepared_steps = 0;
+        }
+        if let Some(trails) = trails {
+            self.canvas = trails.canvas;
+            self.canvas_views = trails.views;
+            self.canvas_pipeline = trails.pipeline;
+            self.entity_textures = trails.entity_groups;
+            self.canvas_textures = trails.canvas_groups;
+            self.current_canvas = 0;
             self.prepared_steps = 0;
         }
         self.configs = b;
@@ -1206,37 +1301,17 @@ impl Engine {
     }
     pub fn set_camera_field(&mut self, d: &wgpu::Device, view: &wgpu::TextureView) {
         let layout = self.entity_pipeline.get_bind_group_layout(1);
-        self.entity_textures = std::array::from_fn(|wrap| {
-            std::array::from_fn(|i| {
-                group(
-                    d,
-                    &layout,
-                    &[
-                        wgpu::BindGroupEntry {
-                            binding: 0,
-                            resource: wgpu::BindingResource::TextureView(&self.canvas_views[i]),
-                        },
-                        wgpu::BindGroupEntry {
-                            binding: 1,
-                            resource: wgpu::BindingResource::Sampler(&self.samplers[wrap]),
-                        },
-                        wgpu::BindGroupEntry {
-                            binding: 2,
-                            resource: wgpu::BindingResource::TextureView(&self.field_view),
-                        },
-                        wgpu::BindGroupEntry {
-                            binding: 3,
-                            resource: wgpu::BindingResource::Sampler(&self.samplers[wrap]),
-                        },
-                        wgpu::BindGroupEntry {
-                            binding: 4,
-                            resource: wgpu::BindingResource::TextureView(view),
-                        },
-                    ],
-                )
-            })
-        });
+        self.entity_textures = entity_texture_groups(
+            d,
+            &layout,
+            &self.canvas_views,
+            &self.field_view,
+            view,
+            &self.samplers,
+        );
+        self.camera_field_view = view.clone();
     }
+
     pub fn set_camera_strengths(&mut self, strengths: [f32; 2]) {
         self.camera_strengths = strengths.map(|v| if v.is_finite() { v } else { 0.0 });
     }
@@ -1286,12 +1361,22 @@ impl Engine {
         .iter()
         .map(|b| b.size())
         .sum::<u64>()
-            + self.sizing.canvas[0] as u64 * self.sizing.canvas[1] as u64 * 16
+            + self
+                .canvas
+                .iter()
+                .map(|texture| {
+                    u64::from(texture.width())
+                        * u64::from(texture.height())
+                        * u64::from(texture.format().block_copy_size(None).unwrap())
+                })
+                .sum::<u64>()
             + self.field_size[0] as u64 * self.field_size[1] as u64 * 8
             + 8
     }
     fn active_splat_lanes(mode: crate::network::Mode, revision: u32, wide_capacity: bool) -> u32 {
-        if wide_capacity && revision >= 3 && mode != crate::network::Mode::Fourier {
+        if mode == crate::network::Mode::Fourier {
+            2
+        } else if wide_capacity && revision >= 3 {
             4
         } else {
             3

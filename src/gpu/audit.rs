@@ -943,8 +943,19 @@ pub fn contracts(d: &wgpu::Device, q: &wgpu::Queue, workgroup: u32) -> Result<Va
 }
 
 pub fn canvas_pixels(d: &wgpu::Device, q: &wgpu::Queue, e: &Engine) -> Result<Vec<[f32; 4]>> {
-    let [w, h] = e.sizing.canvas;
-    let pitch = (w * 8).next_multiple_of(256);
+    texture_pixels(d, q, &e.canvas[e.current_canvas])
+}
+fn texture_storage_bytes(
+    d: &wgpu::Device,
+    q: &wgpu::Queue,
+    texture: &wgpu::Texture,
+) -> Result<Vec<u8>> {
+    let [w, h] = [texture.width(), texture.height()];
+    let pixel_bytes = texture
+        .format()
+        .block_copy_size(None)
+        .context("Unsupported canvas readback format")?;
+    let pitch = (w * pixel_bytes).next_multiple_of(256);
     let b = buffer(
         d,
         "occupancy readback",
@@ -954,7 +965,7 @@ pub fn canvas_pixels(d: &wgpu::Device, q: &wgpu::Queue, e: &Engine) -> Result<Ve
     let mut encoder = d.create_command_encoder(&Default::default());
     encoder.copy_texture_to_buffer(
         wgpu::TexelCopyTextureInfo {
-            texture: &e.canvas[e.current_canvas],
+            texture,
             mip_level: 0,
             origin: wgpu::Origin3d::ZERO,
             aspect: wgpu::TextureAspect::All,
@@ -984,6 +995,31 @@ pub fn canvas_pixels(d: &wgpu::Device, q: &wgpu::Queue, e: &Engine) -> Result<Ve
     })?;
     rx.recv_timeout(Duration::from_secs(1))??;
     let raw = b.slice(..).get_mapped_range()?;
+    let bytes = raw
+        .chunks_exact(pitch as usize)
+        .flat_map(|row| row[..w as usize * pixel_bytes as usize].iter().copied())
+        .collect();
+    drop(raw);
+    b.unmap();
+    Ok(bytes)
+}
+fn texture_pixels(
+    d: &wgpu::Device,
+    q: &wgpu::Queue,
+    texture: &wgpu::Texture,
+) -> Result<Vec<[f32; 4]>> {
+    let pixel_bytes = texture
+        .format()
+        .block_copy_size(None)
+        .context("Unsupported half-float readback format")?;
+    ensure!(
+        matches!(
+            texture.format(),
+            wgpu::TextureFormat::Rg16Float | wgpu::TextureFormat::Rgba16Float
+        ),
+        "Expected half-float vector texture"
+    );
+    let raw = texture_storage_bytes(d, q, texture)?;
     let half = |v: u16| {
         let sign = if v & 0x8000 != 0 { -1.0 } else { 1.0 };
         let exp = (v >> 10) & 31;
@@ -996,15 +1032,16 @@ pub fn canvas_pixels(d: &wgpu::Device, q: &wgpu::Queue, e: &Engine) -> Result<Ve
             (1.0 + frac / 1024.0) * 2f32.powi(i32::from(exp) - 15)
         }
     };
-    let mut pixels = Vec::new();
-    for row in raw.chunks_exact(pitch as usize) {
-        for px in row[..w as usize * 8].chunks_exact(8) {
-            pixels.push(std::array::from_fn(|j| {
-                half(u16::from_le_bytes([px[j * 2], px[j * 2 + 1]]))
-            }));
-        }
-    }
-    drop(raw);
-    b.unmap();
-    Ok(pixels)
+    Ok(raw
+        .chunks_exact(pixel_bytes as usize)
+        .map(|px| {
+            std::array::from_fn(|j| {
+                if j * 2 < px.len() {
+                    half(u16::from_le_bytes([px[j * 2], px[j * 2 + 1]]))
+                } else {
+                    0.0
+                }
+            })
+        })
+        .collect())
 }

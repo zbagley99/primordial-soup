@@ -128,6 +128,7 @@ struct ComparisonReadback {
 }
 struct PendingProject {
     prepared: crate::gpu::PreparedProject,
+    trail_bindings: Option<[wgpu::BindGroup; 2]>,
     next: Project,
     history: History,
     label: String,
@@ -1664,7 +1665,13 @@ impl SoupApp {
             .push_error_scope(wgpu::ErrorFilter::Validation);
         let prepared = self
             .gpu
-            .prepare_project(&self.rs.device, &self.rs.queue, &next);
+            .prepare_project(&self.rs.device, &self.rs.queue, &next)
+            .map(|prepared| {
+                let trail_bindings = prepared
+                    .canvas_views()
+                    .map(|views| self.render.prepare_trail_bindings(&self.rs.device, views));
+                (prepared, trail_bindings)
+            });
         let validation = validation.pop();
         let oom = oom.pop();
         let status = Arc::new(Mutex::new(None));
@@ -1680,10 +1687,14 @@ impl SoupApp {
         #[cfg(not(target_arch = "wasm32"))]
         pollster::block_on(future);
         match prepared {
-            Ok(prepared) => {
+            Ok((prepared, trail_bindings)) => {
+                if trail_bindings.is_some() {
+                    self.pending_renderer = None;
+                }
                 self.notice = format!("Preparing {} network…", next.config().mode().label());
                 self.pending_project = Some(PendingProject {
                     prepared,
+                    trail_bindings,
                     next,
                     history,
                     label: label.into(),
@@ -1710,6 +1721,9 @@ impl SoupApp {
             return;
         }
         self.gpu.commit_project(pending.prepared);
+        if let Some(bindings) = pending.trail_bindings {
+            self.render.commit_trail_bindings(bindings);
+        }
         self.notice.clear();
         self.state.project = pending.next;
         match pending.purpose {
@@ -3376,7 +3390,11 @@ impl SoupApp {
             || self.state.prefs.canvas_aspect != old_prefs.canvas_aspect;
         if sizing_changed || self.gpu.workgroup_size() != self.workgroup {
             self.comparison_stale = true;
-            let rebuilt = if self.recorder.is_some() || self.pending_export.is_some() {
+            let rebuilt = if self.pending_project.is_some() {
+                Err(anyhow::anyhow!(
+                    "Finish the project change before rebuilding the world"
+                ))
+            } else if self.recorder.is_some() || self.pending_export.is_some() {
                 Err(anyhow::anyhow!(
                     "Finish or cancel recording before changing world size or workgroup"
                 ))
@@ -3398,6 +3416,7 @@ impl SoupApp {
             };
             match rebuilt {
                 Ok((e, r)) => {
+                    self.pending_renderer = None;
                     self.gpu = e;
                     self.clock.reset();
                     self.gpu
@@ -3751,6 +3770,10 @@ impl SoupApp {
     }
     fn rebuild(&mut self, prefs: Preferences) -> Result<()> {
         anyhow::ensure!(
+            self.pending_project.is_none(),
+            "Finish the project change before rebuilding the world"
+        );
+        anyhow::ensure!(
             (self.recorder.is_none() && self.pending_export.is_none()),
             "Finish or cancel recording before rebuilding the world"
         );
@@ -3764,6 +3787,7 @@ impl SoupApp {
         )?;
         e.set_camera_field(&self.rs.device, self.webcam.field_view());
         let r = Renderer::new(&self.rs.device, &e, self.render.size)?;
+        self.pending_renderer = None;
         self.gpu = e;
         self.clock.reset();
         self.render = r;
@@ -3952,6 +3976,13 @@ impl SoupApp {
         self.last_tick_plan = Instant::now();
     }
     fn prepare_renderer(&mut self, size: [u32; 2]) -> Result<()> {
+        if self
+            .pending_project
+            .as_ref()
+            .is_some_and(|project| project.trail_bindings.is_some())
+        {
+            return Ok(());
+        }
         self.state.prefs.cells.sanitize();
         let desired = &self.state.prefs.cells;
         let needs = self.render.size != size

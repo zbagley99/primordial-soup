@@ -57,7 +57,15 @@ mod native {
         size: [u32; 2],
         pixel: u32,
     ) -> Result<Vec<u8>> {
-        let pitch = (size[0] * pixel).next_multiple_of(256);
+        let native_pixel = t
+            .format()
+            .block_copy_size(None)
+            .context("Unsupported readback format")?;
+        ensure!(
+            native_pixel == pixel || (t.format() == wgpu::TextureFormat::Rg16Float && pixel == 8),
+            "Texture readback byte width mismatch"
+        );
+        let pitch = (size[0] * native_pixel).next_multiple_of(256);
         let b = d.create_buffer(&wgpu::BufferDescriptor {
             label: Some("texture readback"),
             size: pitch as u64 * size[1] as u64,
@@ -88,10 +96,19 @@ mod native {
         );
         q.submit([e.finish()]);
         let raw = mapped(d, &b)?;
-        Ok(raw
+        let native: Vec<u8> = raw
             .chunks_exact(pitch as usize)
-            .flat_map(|r| r[..(size[0] * pixel) as usize].iter().copied())
-            .collect())
+            .flat_map(|r| r[..(size[0] * native_pixel) as usize].iter().copied())
+            .collect();
+        // Stored-channel comparison: absent RG16 B/A are canonical zero, not sampled alpha.
+        Ok(if native_pixel == pixel {
+            native
+        } else {
+            native
+                .chunks_exact(4)
+                .flat_map(|rg| [rg[0], rg[1], rg[2], rg[3], 0, 0, 0, 0])
+                .collect()
+        })
     }
     fn step(d: &wgpu::Device, q: &wgpu::Queue, e: &mut Engine, p: &Project, n: u32) -> Result<()> {
         e.prepare_frame(q, &p.world, n, None, [0.01, 0.001])?;
@@ -722,7 +739,7 @@ mod native {
     }
 
     fn canonical_splat(native: &[u8], pixels: usize, stride: usize) -> Result<Vec<u8>> {
-        ensure!(stride == 3 || stride == 4, "Invalid splat stride {stride}");
+        ensure!((2..=4).contains(&stride), "Invalid splat stride {stride}");
         ensure!(
             native.len() >= pixels * stride * 4,
             "Splat allocation shorter than active layout"
@@ -730,7 +747,11 @@ mod native {
         let mut canonical = Vec::with_capacity(pixels * 12);
         for pixel in native[..pixels * stride * 4].chunks_exact(stride * 4) {
             canonical.extend_from_slice(&pixel[..8]);
-            let low = u32::from_le_bytes(pixel[8..12].try_into().unwrap());
+            let low = if stride >= 3 {
+                u32::from_le_bytes(pixel[8..12].try_into().unwrap())
+            } else {
+                0
+            };
             let occupancy = if stride == 4 {
                 let high = u32::from_le_bytes(pixel[12..16].try_into().unwrap());
                 if high != 0 {
@@ -786,11 +807,25 @@ mod native {
         std::fs::write(directory.join("splat-native.bin"), &native_splat)?;
         let rules = engine.snapshot_rules(d, q);
         save("rules.bin", &mapped(d, &rules)?)?;
+        let mut canvas_representation = Vec::new();
         for (index, canvas) in engine.canvas.iter().enumerate() {
-            save(
-                &format!("canvas-{index}.rgba16f"),
-                &tex(d, q, canvas, engine.sizing.canvas, 8)?,
-            )?;
+            let rgba = if canvas.format() == wgpu::TextureFormat::Rg16Float {
+                let native = tex(d, q, canvas, engine.sizing.canvas, 4)?;
+                let native_file = format!("canvas-{index}.rg16f");
+                std::fs::write(directory.join(&native_file), &native)?;
+                canvas_representation.push(json!({"format":"rg16float","native_file":native_file,
+                    "native_bytes":native.len(),"native_fnv1a64":bytes_hash(&native),
+                    "canonical_file":format!("canvas-{index}.rgba16f"),
+                    "absent_storage_channels":["b","a"],"sampled_missing_channels":[0,1],
+                    "canonical_missing_channels":[0,0]}));
+                native
+                    .chunks_exact(4)
+                    .flat_map(|rg| [rg[0], rg[1], rg[2], rg[3], 0, 0, 0, 0])
+                    .collect()
+            } else {
+                tex(d, q, canvas, engine.sizing.canvas, 8)?
+            };
+            save(&format!("canvas-{index}.rgba16f"), &rgba)?;
         }
         save(
             "field.rgba16f",
@@ -806,6 +841,7 @@ mod native {
         std::fs::write(directory.join("project.json"), &project_json)?;
         let metadata = json!({
             "format":"primordial-benchmark-state-v1","byte_order":"little_endian",
+            "canvas_representation":canvas_representation,
             "hash":"fnv1a64 (comparison aid; compare raw bytes for exactness)",
             "project":project,"project_hash":primordial_soup::archive::hash_state(project),
             "project_json_fnv1a64":bytes_hash(project_json.as_bytes()),
@@ -872,6 +908,15 @@ mod native {
             assert_eq!(actual, expected);
             assert_eq!(canonical_splat(&expected, 3, 3).unwrap(), expected);
             assert!(canonical_splat(&native[..8], 1, 4).is_err());
+            let narrow: Vec<u8> = [0x8000_0001u32, 0xffff_ffff, 7, 8]
+                .iter()
+                .flat_map(|v| v.to_le_bytes())
+                .collect();
+            let expected: Vec<u8> = [0x8000_0001u32, 0xffff_ffff, 0, 7, 8, 0]
+                .iter()
+                .flat_map(|v| v.to_le_bytes())
+                .collect();
+            assert_eq!(canonical_splat(&narrow, 2, 2).unwrap(), expected);
         }
 
         #[test]

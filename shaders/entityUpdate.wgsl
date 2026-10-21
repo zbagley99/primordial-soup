@@ -661,7 +661,8 @@ fn deposit(index: u32, pos: vec2f, vel: vec2f, size: f32, weight: f32) {
     // Clamped inside i32 before converting; a single deposit that large is
     // already far past what the canvas can hold (see SPLAT_FIXED_SCALE).
     let fixed = vec2i(round(clamp(value, vec2f(-2.0e9), vec2f(2.0e9))));
-    let i = (pixel.y * u32(res.x) + pixel.x) * select(3u,4u,WIDE_OCCUPANCY);
+    let stride = select(2u, select(3u, 4u, WIDE_OCCUPANCY), NETWORK_MODE != 0u);
+    let i = (pixel.y * u32(res.x) + pixel.x) * stride;
     atomicAdd(&splat[i], fixed.x);
     atomicAdd(&splat[i + 1u], fixed.y);
     if(BRAIN_REVISION>=3u && NETWORK_MODE!=0u){add_occupancy(i+2u,amount*premult);}

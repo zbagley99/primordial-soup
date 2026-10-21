@@ -9,7 +9,7 @@ use crate::{
     gpu::{Engine, MAX_STEPS, Paint},
     network::Mode,
 };
-use anyhow::{Result, ensure};
+use anyhow::{Context, Result, ensure};
 use serde_json::{Value, json};
 use std::{sync::mpsc, time::Duration};
 
@@ -54,8 +54,11 @@ fn read_texture(
     q: &wgpu::Queue,
     source: &wgpu::Texture,
     size: [u32; 2],
-    pixel_bytes: u32,
 ) -> Result<Vec<u8>> {
+    let pixel_bytes = source
+        .format()
+        .block_copy_size(None)
+        .context("Unsupported field validation texture format")?;
     let pitch = (size[0] * pixel_bytes).next_multiple_of(256);
     let target = d.create_buffer(&wgpu::BufferDescriptor {
         label: Some("field contract texture readback"),
@@ -110,8 +113,8 @@ fn snapshot(d: &wgpu::Device, q: &wgpu::Queue, engine: &Engine) -> Result<Snapsh
         entities: read_buffer(d, q, &engine.entities)?,
         splat: read_buffer(d, q, engine.splat_buffer())?,
         canvases: [
-            read_texture(d, q, &engine.canvas[0], engine.sizing.canvas, 8)?,
-            read_texture(d, q, &engine.canvas[1], engine.sizing.canvas, 8)?,
+            read_texture(d, q, &engine.canvas[0], engine.sizing.canvas)?,
+            read_texture(d, q, &engine.canvas[1], engine.sizing.canvas)?,
         ],
         memory: read_buffer(d, q, &engine.brain_memory)?,
         frame: engine.frame_count,
@@ -354,7 +357,7 @@ pub fn validate(d: &wgpu::Device, q: &wgpu::Queue, workgroup: u32) -> Result<Val
                 e.field_sampling_active(),
                 "{name}: first mutation did not activate field"
             );
-            let field = read_texture(d, q, e.field_texture(q), e.field_size, 8)?;
+            let field = read_texture(d, q, e.field_texture(q), e.field_size)?;
             ensure!(
                 finite_half(&field) && field.iter().any(|v| *v != 0),
                 "{name}: mutation was empty/nonfinite"
@@ -381,7 +384,7 @@ pub fn validate(d: &wgpu::Device, q: &wgpu::Queue, workgroup: u32) -> Result<Val
                 e.field_sampling_active(),
                 "Clearing must not restore pristine assumption"
             );
-            let field = read_texture(d, q, e.field_texture(q), e.field_size, 8)?;
+            let field = read_texture(d, q, e.field_texture(q), e.field_size)?;
             ensure!(
                 field.iter().all(|v| *v == 0),
                 "Full field clear left content"

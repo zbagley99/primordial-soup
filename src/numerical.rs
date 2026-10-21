@@ -213,10 +213,19 @@ fn run(
     )?;
     q.write_buffer(&e.entities, 0, bytemuck::cast_slice(&seed()));
     // The seed values are exactly representable in binary16.
-    let mut pixels = vec![0u16; (SIDE * SIDE * 4) as usize];
+    let pixel_bytes = e.canvas[e.current_canvas]
+        .format()
+        .block_copy_size(None)
+        .unwrap();
+    ensure!(
+        matches!(pixel_bytes, 4 | 8),
+        "Unexpected numerical canvas format"
+    );
+    let channels = pixel_bytes as usize / 2;
+    let mut pixels = vec![0u16; (SIDE * SIDE) as usize * channels];
     pixels[..2].copy_from_slice(&[0x3800, 0xb400]);
-    pixels[(3 * SIDE + 5) as usize * 4..(3 * SIDE + 5) as usize * 4 + 2]
-        .copy_from_slice(&[0xb000, 0x3800]);
+    let second = (3 * SIDE + 5) as usize * channels;
+    pixels[second..second + 2].copy_from_slice(&[0xb000, 0x3800]);
     q.write_texture(
         wgpu::TexelCopyTextureInfo {
             texture: &e.canvas[e.current_canvas],
@@ -227,7 +236,7 @@ fn run(
         bytemuck::cast_slice(&pixels),
         wgpu::TexelCopyBufferLayout {
             offset: 0,
-            bytes_per_row: Some(SIDE * 8),
+            bytes_per_row: Some(SIDE * pixel_bytes),
             rows_per_image: Some(SIDE),
         },
         wgpu::Extent3d {
@@ -290,8 +299,8 @@ fn run(
         entity_bytes,
         raw.chunks_exact(256)
             .flat_map(|row| {
-                row[..(SIDE * 8) as usize]
-                    .chunks_exact(8)
+                row[..(SIDE * pixel_bytes) as usize]
+                    .chunks_exact(pixel_bytes as usize)
                     .flat_map(|pixel| pixel[..4].iter().copied())
             })
             .collect(),
@@ -348,6 +357,10 @@ pub fn validate(d: &wgpu::Device, q: &wgpu::Queue, workgroup: u32) -> Result<Val
                 }
             }
             let expected = reference_trails(boundary, steps);
+            ensure!(
+                actual.1.len() == (SIDE * SIDE * 4) as usize,
+                "Numerical readback lost R/G components"
+            );
             let mut max_trail_error = 0f64;
             for (i, bytes) in actual.1.chunks_exact(2).enumerate() {
                 let got = half(u16::from_le_bytes(bytes.try_into().unwrap()));

@@ -127,7 +127,7 @@ pub fn check(d: &wgpu::Device, q: &wgpu::Queue) -> Result<Value> {
         }
     }
     Ok(
-        json!({"preclear_occupancy":reports,"frozen_scalar_reference":true,"actual_production_function":true,"layout_transitions":layout_transitions(d,q)?,"canvas_decode":canvas_decode(d,q)?}),
+        json!({"preclear_occupancy":reports,"frozen_scalar_reference":true,"actual_production_function":true,"layout_transitions":layout_transitions(d,q)?,"canvas_decode":canvas_decode(d,q)?,"fourier_preclear":fourier_preclear(d,q)?,"renderer_transitions":renderer_transitions(d,q)?}),
     )
 }
 
@@ -147,26 +147,81 @@ fn layout_transitions(d: &wgpu::Device, q: &wgpu::Queue) -> Result<Value> {
             Engine::new_with_splat_lanes(d, q, sizing, &project, 64, true)?,
         ];
         ensure!(
-            engines[0].splat_stride() == 3 && engines[1].splat_capacity_lanes() == 4,
+            engines[0].splat_capacity_lanes() == 3 && engines[1].splat_capacity_lanes() == 4,
             "Native small-layout fixture must exercise forced fallback and wide allocation"
         );
+        let camera = texture(
+            d,
+            "transition camera",
+            [1, 1],
+            wgpu::TextureFormat::Rg16Float,
+        );
+        let camera_view = camera.create_view(&Default::default());
+        q.write_texture(
+            camera.as_image_copy(),
+            bytemuck::cast_slice(&[0x2800u16, 0]),
+            wgpu::TexelCopyBufferLayout {
+                offset: 0,
+                bytes_per_row: Some(4),
+                rows_per_image: Some(1),
+            },
+            wgpu::Extent3d {
+                width: 1,
+                height: 1,
+                depth_or_array_layers: 1,
+            },
+        );
+        let field: Vec<u16> = (0..1024).flat_map(|_| [0x2000u16, 0, 0, 0]).collect();
+        for engine in &mut engines {
+            engine.set_camera_field(d, &camera_view);
+            engine.set_camera_strengths([0.5, 0.25]);
+            q.write_texture(
+                engine.field_texture(q).as_image_copy(),
+                bytemuck::cast_slice(&field),
+                wgpu::TexelCopyBufferLayout {
+                    offset: 0,
+                    bytes_per_row: Some(32 * 8),
+                    rows_per_image: Some(32),
+                },
+                wgpu::Extent3d {
+                    width: 32,
+                    height: 32,
+                    depth_or_array_layers: 1,
+                },
+            );
+        }
         let exact = |a: &wgpu::Buffer, b: &wgpu::Buffer| -> Result<()> {
             let a: Vec<u32> = read(d, q, a)?.iter().map(|v| v.to_bits()).collect();
             let b: Vec<u32> = read(d, q, b)?.iter().map(|v| v.to_bits()).collect();
             ensure!(a == b, "Wide/fallback particle or recurrent state differs");
             Ok(())
         };
-        for revision in [2, 3, 2, 3] {
-            project
-                .config_mut()
-                .networks
-                .as_mut()
-                .unwrap()
-                .banks
-                .iter_mut()
-                .find(|bank| bank.mode == mode)
-                .unwrap()
-                .revision = revision;
+        for (active_mode, revision) in [
+            (Mode::Fourier, 1),
+            (mode, 1),
+            (Mode::Fourier, 1),
+            (mode, 2),
+            (Mode::Fourier, 1),
+            (mode, 3),
+            (Mode::Fourier, 1),
+            (mode, 3),
+            (mode, 3),
+            (Mode::Fourier, 1),
+            (Mode::Fourier, 1),
+        ] {
+            project.config_mut().switch_mode(active_mode, 0.25);
+            if active_mode != Mode::Fourier {
+                project
+                    .config_mut()
+                    .networks
+                    .as_mut()
+                    .unwrap()
+                    .banks
+                    .iter_mut()
+                    .find(|bank| bank.mode == active_mode)
+                    .unwrap()
+                    .revision = revision;
+            }
             for engine in &mut engines {
                 engine.prepare_frame(q, &project.world, 1, None, [0.0; 2])?;
                 let before = (
@@ -174,8 +229,35 @@ fn layout_transitions(d: &wgpu::Device, q: &wgpu::Queue) -> Result<Value> {
                     engine.splat_stride(),
                     engine.prepared_steps,
                 );
+                let identities = (
+                    engine.canvas_views.clone(),
+                    engine.field_view.clone(),
+                    engine.camera_field_view.clone(),
+                    engine.entities.clone(),
+                    engine.interaction_group.clone(),
+                );
+                let held_field = texture_pixels(d, q, &engine.field)?;
+                let expected_replacement = trail_format(active_mode) != engine.canvas[0].format();
                 let preview = engine.prepare_project(d, q, &project)?;
+                ensure!(
+                    preview.canvas_views().is_some() == expected_replacement,
+                    "Prepared trail replacement decision incorrect"
+                );
                 drop(preview);
+                let mut invalid = project.clone();
+                invalid.world.trail_persistence = f64::NAN;
+                ensure!(
+                    engine.prepare_project(d, q, &invalid).is_err(),
+                    "Invalid preparation unexpectedly succeeded"
+                );
+                ensure!(
+                    engine.canvas_views == identities.0
+                        && engine.field_view == identities.1
+                        && engine.camera_field_view == identities.2
+                        && engine.entities == identities.3
+                        && engine.interaction_group == identities.4,
+                    "Cancelled/failed preparation replaced active resources"
+                );
                 ensure!(
                     before
                         == (
@@ -187,6 +269,25 @@ fn layout_transitions(d: &wgpu::Device, q: &wgpu::Queue) -> Result<Value> {
                 );
                 let old_stride = engine.splat_stride();
                 engine.upload_project(d, q, &project)?;
+                ensure!(
+                    (engine.canvas_views != identities.0) == expected_replacement,
+                    "Commit replaced same-format trails or retained old-format trails"
+                );
+                ensure!(
+                    engine.canvas[0].format() == trail_format(active_mode),
+                    "Committed trail format incorrect"
+                );
+                ensure!(
+                    engine.field_view == identities.1
+                        && engine.camera_field_view == identities.2
+                        && engine.entities == identities.3
+                        && engine.interaction_group == identities.4,
+                    "Trail transition replaced unrelated active resources"
+                );
+                ensure!(
+                    texture_pixels(d, q, &engine.field)? == held_field,
+                    "Trail transition erased painted field"
+                );
                 if old_stride != engine.splat_stride() {
                     ensure!(
                         engine.prepared_steps == 0,
@@ -224,7 +325,7 @@ fn layout_transitions(d: &wgpu::Device, q: &wgpu::Queue) -> Result<Value> {
                     .eq(canvases[1].iter().flatten().map(|v| v.to_bits())),
                 "Wide/fallback canvas differs after revision transition"
             );
-            reports.push(json!({"mode":mode,"revision":revision,"active_lanes":engines[1].splat_stride(),
+            reports.push(json!({"mode":active_mode,"revision":revision,"active_lanes":engines[1].splat_stride(),
                 "forced_fallback":true,"partial_workgroup":true,"zero_steps":true,"abandoned_preview":true,
                 "stale_uniform_guard":true,"entities_memory_canvas_exact":true}));
         }
@@ -290,12 +391,273 @@ fn probe_source() -> Result<String> {
     ))
 }
 
+fn renderer_transitions(d: &wgpu::Device, q: &wgpu::Queue) -> Result<Value> {
+    use crate::{
+        config::Preferences,
+        coords::Camera,
+        network::Mode,
+        render::{Overlays, Renderer},
+    };
+    let mut project = Project::default();
+    let mut engine = Engine::new(
+        d,
+        q,
+        Sizing {
+            canvas: [32, 32],
+            entity_count: 67,
+            sqrt_world_size: 1.0,
+        },
+        &project,
+        64,
+    )?;
+    let mut reused = Renderer::new(d, &engine, [64, 64])?;
+    let camera = Camera {
+        trail_mode: true,
+        ..Default::default()
+    };
+    let prefs = Preferences::default();
+    let mut count = 0u16;
+    let mut previous_output = None;
+    for mode in [
+        Mode::Fourier,
+        Mode::Mlp,
+        Mode::Gru,
+        Mode::Fourier,
+        Mode::Gru,
+        Mode::Fourier,
+    ] {
+        project.config_mut().switch_mode(mode, 0.25);
+        let prepared = engine.prepare_project(d, q, &project)?;
+        let bindings = prepared
+            .canvas_views()
+            .map(|views| reused.prepare_trail_bindings(d, views));
+        let replaced = bindings.is_some();
+        engine.commit_project(prepared);
+        if let Some(bindings) = bindings {
+            reused.commit_trail_bindings(bindings);
+        }
+        if replaced {
+            for canvas in &engine.canvas {
+                ensure!(
+                    texture_storage_bytes(d, q, canvas)?.iter().all(|v| *v == 0),
+                    "Paused new-format canvas not initialized zero"
+                );
+            }
+        }
+        engine.prepare_frame(q, &project.world, 0, None, [0.0; 2])?;
+        ensure!(
+            engine.prepared_steps == 0,
+            "Paused format transition prepared simulation steps"
+        );
+        for _ in 0..3 {
+            engine.prepare_frame(q, &project.world, 1, None, [0.0; 2])?;
+            let mut encoder = d.create_command_encoder(&Default::default());
+            engine.encode_step(&mut encoder, 0);
+            q.submit([encoder.finish()]);
+        }
+        // Nonzero held vectors make a stale reference to the discarded canvas observable.
+        let channels = engine.canvas[engine.current_canvas]
+            .format()
+            .block_copy_size(None)
+            .unwrap() as usize
+            / 2;
+        let data: Vec<u16> = (0..1024)
+            .flat_map(|_| {
+                (0..channels).map(move |lane| {
+                    if lane == 0 {
+                        0x4000u16 + count * 0x100
+                    } else {
+                        0
+                    }
+                })
+            })
+            .collect();
+        q.write_texture(
+            engine.canvas[engine.current_canvas].as_image_copy(),
+            bytemuck::cast_slice(&data),
+            wgpu::TexelCopyBufferLayout {
+                offset: 0,
+                bytes_per_row: Some(32 * channels as u32 * 2),
+                rows_per_image: Some(32),
+            },
+            wgpu::Extent3d {
+                width: 32,
+                height: 32,
+                depth_or_array_layers: 1,
+            },
+        );
+        let mut fresh = Renderer::new(d, &engine, [64, 64])?;
+        for renderer in [&mut reused, &mut fresh] {
+            renderer.begin_frame(q, &engine, &camera, &project, 1, -1.0);
+            let mut encoder = d.create_command_encoder(&Default::default());
+            renderer.clear_accumulator(&mut encoder);
+            renderer.sample(&mut encoder, &engine, &camera);
+            renderer.present(
+                q,
+                &mut encoder,
+                &engine,
+                &camera,
+                &prefs,
+                Overlays::default(),
+            );
+            q.submit([encoder.finish()]);
+        }
+        let output = texture_storage_bytes(d, q, reused.output_texture())?;
+        ensure!(
+            output == texture_storage_bytes(d, q, fresh.output_texture())?,
+            "Reused Renderer samples stale trails after format transition"
+        );
+        if let Some(previous) = previous_output {
+            ensure!(
+                output != previous,
+                "Trail sentinel did not distinguish old and new bindings"
+            );
+        }
+        previous_output = Some(output);
+        reused.rebind_trails(d, &engine.canvas_views);
+        count += 1;
+    }
+    Ok(
+        json!({"transitions":count,"prepared_renderer_bindings":true,"reused_vs_fresh_rgba8_exact":true,"paused_transition":true,"nonzero_trail_sentinel":true}),
+    )
+}
+
+fn fourier_preclear(d: &wgpu::Device, q: &wgpu::Queue) -> Result<Value> {
+    let project = Project::default();
+    let source = shader("entityUpdate.wgsl");
+    let stride = "let stride = select(2u, select(3u, 4u, WIDE_OCCUPANCY), NETWORK_MODE != 0u);";
+    ensure!(
+        source.contains(stride),
+        "Fourier reference stride anchor missing"
+    );
+    let reference = source.replace(stride, "let stride = select(3u, 4u, WIDE_OCCUPANCY);");
+    let module = d.create_shader_module(wgpu::ShaderModuleDescriptor {
+        label: Some("original three-lane Fourier deposit"),
+        source: wgpu::ShaderSource::Wgsl(reference.into()),
+    });
+    let mut reports = Vec::new();
+    for allow_wide in [false, true] {
+        let sizing = Sizing {
+            canvas: [32, 32],
+            entity_count: 67,
+            sqrt_world_size: 1.0,
+        };
+        let mut engines = [
+            Engine::new_with_splat_lanes(d, q, sizing, &project, 64, allow_wide)?,
+            Engine::new_with_splat_lanes(d, q, sizing, &project, 64, allow_wide)?,
+        ];
+        let layouts = [
+            engines[0].entity_pipeline.get_bind_group_layout(0),
+            engines[0].entity_pipeline.get_bind_group_layout(1),
+        ];
+        let layout = d.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("original Fourier deposit layout"),
+            bind_group_layouts: &[
+                Some(&layouts[0]),
+                Some(&layouts[1]),
+                Some(&engines[0].interaction_layout),
+            ],
+            immediate_size: 0,
+        });
+        engines[0].entity_pipeline = compute(
+            d,
+            &module,
+            "main",
+            Some(&layout),
+            &[
+                ("CONFIG_PER_COHORT", 1.0),
+                ("WORKGROUP_SIZE", 64.0),
+                ("NETWORK_MODE", 0.0),
+                ("BRAIN_REVISION", 1.0),
+                ("WIDE_OCCUPANCY", 0.0),
+            ],
+        );
+        for tick in 0..4 {
+            if tick == 1 {
+                let particles: Vec<f32> = (0..67)
+                    .flat_map(|index| {
+                        [
+                            (index % 8) as f32 * 0.25 - 0.875,
+                            (index / 8) as f32 * 0.22 - 0.875,
+                            0.05,
+                            -0.03,
+                            0.025,
+                            0.0,
+                            0.0,
+                            0.0,
+                        ]
+                    })
+                    .collect();
+                for engine in &engines {
+                    q.write_buffer(&engine.entities, 0, bytemuck::cast_slice(&particles));
+                }
+            }
+            for engine in &mut engines {
+                engine.prepare_frame(q, &project.world, 1, None, [0.0; 2])?;
+                let mut encoder = d.create_command_encoder(&Default::default());
+                engine.encode_bake(&mut encoder);
+                {
+                    let mut pass = encoder.begin_compute_pass(&Default::default());
+                    pass.set_pipeline(&engine.entity_pipeline);
+                    pass.set_bind_group(0, &engine.entity_state, &[0]);
+                    pass.set_bind_group(
+                        1,
+                        &engine.entity_textures[engine.wrap][engine.current_canvas],
+                        &[],
+                    );
+                    pass.set_bind_group(2, &engine.interaction_group, &[]);
+                    pass.dispatch_workgroups(2, 1, 1);
+                }
+                q.submit([encoder.finish()]);
+                engine.frame_count += 1;
+            }
+            let raw = [
+                read(d, q, &engines[0].splat)?,
+                read(d, q, &engines[1].splat)?,
+            ];
+            for pixel in 0..1024 {
+                for lane in 0..2 {
+                    ensure!(
+                        raw[0][pixel * 3 + lane].to_bits() == raw[1][pixel * 2 + lane].to_bits(),
+                        "Fourier preclear momentum differs at tick {tick}, pixel {pixel}, lane {lane}"
+                    );
+                }
+                ensure!(
+                    raw[0][pixel * 3 + 2].to_bits() == 0,
+                    "Fourier reference wrote occupancy"
+                );
+            }
+            ensure!(
+                raw[1][2048..].iter().all(|v| v.to_bits() == 0),
+                "Two-lane entity wrote unused capacity"
+            );
+            if tick > 0 {
+                ensure!(
+                    raw[1][..2048].iter().any(|v| v.to_bits() != 0),
+                    "Preclear probe deposited no momentum"
+                );
+            }
+            let mut encoder = d.create_command_encoder(&Default::default());
+            for engine in &engines {
+                encoder.clear_buffer(&engine.splat, 0, None);
+            }
+            q.submit([encoder.finish()]);
+        }
+        reports.push(json!({"capacity_lanes":engines[1].splat_capacity_lanes(),"ticks":4,
+            "partial_workgroup":true,"actual_entity_shader":true,"preclear_xy_exact":true,"unused_capacity_zero":true}));
+    }
+    Ok(json!(reports))
+}
+
 fn canvas_decode(d: &wgpu::Device, q: &wgpu::Queue) -> Result<Value> {
     use crate::network::Mode;
     let mut project = Project::default();
     project.config_mut().switch_mode(Mode::Gru, 0.25);
     let mut outputs = Vec::new();
-    for allow_wide in [false, true] {
+    for (allow_wide, fourier) in [(false, false), (true, false), (false, true), (true, true)] {
+        project
+            .config_mut()
+            .switch_mode(if fourier { Mode::Fourier } else { Mode::Gru }, 0.25);
         let mut engine = Engine::new_with_splat_lanes(
             d,
             q,
@@ -310,7 +672,14 @@ fn canvas_decode(d: &wgpu::Device, q: &wgpu::Queue) -> Result<Value> {
         )?;
         let stride = engine.splat_stride();
         ensure!(
-            stride == if allow_wide { 4 } else { 3 },
+            stride
+                == if fourier {
+                    2
+                } else if allow_wide {
+                    4
+                } else {
+                    3
+                },
             "Canvas oracle layout unavailable"
         );
         let sums = [
@@ -327,12 +696,15 @@ fn canvas_decode(d: &wgpu::Device, q: &wgpu::Queue) -> Result<Value> {
         for pixel in 0..1024 {
             words.extend([1234u32, (-4321i32) as u32]);
             let sum = sums[pixel % sums.len()];
-            if allow_wide {
-                words.extend([sum as u32, (sum >> 32) as u32]);
-            } else {
-                words.push(sum.min(7_680_000) as u32);
+            if !fourier {
+                if allow_wide {
+                    words.extend([sum as u32, (sum >> 32) as u32]);
+                } else {
+                    words.push(sum.min(7_680_000) as u32);
+                }
             }
         }
+        q.write_buffer(&engine.splat, 0, &vec![0x55; engine.splat.size() as usize]);
         q.write_buffer(&engine.splat, 0, bytemuck::cast_slice(&words));
         engine.frame_count = 1;
         engine.prepare_frame(q, &project.world, 1, None, [0.0; 2])?;
@@ -365,8 +737,24 @@ fn canvas_decode(d: &wgpu::Device, q: &wgpu::Queue) -> Result<Value> {
         outputs[0] == outputs[1],
         "Actual canvas decoder differs from legacy saturation at unsigned/carry boundaries"
     );
+    ensure!(
+        outputs[2] == outputs[3],
+        "Fourier canvas differs across allocation capacities"
+    );
+    for pixel in 0..1024 {
+        let offset = pixel * 4;
+        ensure!(
+            outputs[2][offset..offset + 2] == outputs[0][offset..offset + 2],
+            "Two-lane momentum decode differs at pixel {pixel}"
+        );
+        ensure!(
+            outputs[2][offset + 2..offset + 4] == [0, 0],
+            "Two-lane decoder consumed unused splat data at pixel {pixel}"
+        );
+    }
     Ok(
-        json!({"actual_canvas_shader":true,"raw_rgba16f_exact":true,"cases":8,"pixels":1024,"momentum_unchanged":true}),
+        json!({"actual_canvas_shader":true,"raw_rgba16f_exact":true,"cases":8,"pixels":1024,"momentum_unchanged":true,
+            "fourier_two_lane":true,"capacity_controls":[3,4],"unused_tail_sentinels":true,"last_texel":true}),
     )
 }
 
