@@ -193,6 +193,7 @@ pub struct SoupApp {
     show_panels: bool,
     inspector_tab: InspectorTab,
     panels_hidden: bool,
+    mutation_draft: Option<f64>,
     paused: bool,
     clock: crate::simulation::SimulationClock,
     last_tick_plan: Instant,
@@ -578,6 +579,7 @@ impl SoupApp {
             show_panels: false,
             inspector_tab: InspectorTab::World,
             panels_hidden: opts.no_panels,
+            mutation_draft: None,
             paused: opts.paused,
             clock: Default::default(),
             last_tick_plan: now,
@@ -2015,6 +2017,7 @@ impl SoupApp {
 
     fn toggle_panels(&mut self, ctx: &egui::Context) {
         self.panels_hidden = !self.panels_hidden;
+        self.mutation_draft = None;
         egui::Popup::close_all(ctx);
         ctx.memory_mut(|memory| {
             if let Some(focused) = memory.focused() {
@@ -2356,6 +2359,55 @@ impl SoupApp {
         }
     }
 
+    fn cohort_controls(&mut self, ui: &mut egui::Ui, now: f64) {
+        let locked = self.pending_project.is_some()
+            || self.preview.is_some()
+            || self.comparison_busy()
+            || self.calibration.is_some()
+            || self.rate_calibration.is_some()
+            || self.recorder.is_some()
+            || self.pending_export.is_some()
+            || self.clock.pending_exact_steps() > 0;
+        if locked {
+            self.mutation_draft = None;
+        }
+        let config = self.state.project.config();
+        let mut mutation = self.mutation_draft.unwrap_or(config.mutation_scale);
+        let mut layout = None;
+        let response = ui
+            .add_enabled_ui(!locked, |ui| {
+                ui.horizontal(|ui| {
+                    for count in [1, 4, 16] {
+                        if studio_ui::cohort_button(
+                            ui,
+                            count,
+                            config.cohorts == count && config.initial_conditions == 0,
+                        )
+                        .clicked()
+                        {
+                            layout = Some(count);
+                        }
+                    }
+                    ui.add_space(4.0);
+                    ui.vertical(|ui| controls::mutation_bar(ui, &mut mutation))
+                        .inner
+                })
+                .inner
+            })
+            .inner;
+        if response.dragged() || response.is_pointer_button_down_on() {
+            self.mutation_draft = Some(mutation);
+        } else if self.mutation_draft.take().is_some() || response.changed() {
+            let mut project = self.state.project.clone();
+            project.config_mut().mutation_scale = mutation;
+            self.set_project(project, "Mutation Scale", false, now, Some("mutation"));
+        }
+        if let Some(count) = layout {
+            self.mutation_draft = None;
+            self.choose_layout(count, now);
+        }
+    }
+
     fn menu(&mut self, ctx: &egui::Context, now: f64) {
         self.preview_hovered = false;
         if self.panels_hidden {
@@ -2363,11 +2415,23 @@ impl SoupApp {
             return;
         }
         let layout = self.ui_layout(ctx);
+        let popup_top = layout.dock.top().min(layout.cohorts.top());
         let locked = self.comparison_busy()
             || self
                 .pending_project
                 .as_ref()
                 .is_some_and(|p| !matches!(p.purpose, ProjectPurpose::Preview { .. }));
+        egui::Area::new("cohort controls".into())
+            .order(egui::Order::Middle)
+            .fixed_pos(layout.cohorts.min)
+            .movable(false)
+            .show(ctx, |ui| {
+                studio_ui::surface().inner_margin(6).show(ui, |ui| {
+                    ui.set_width((layout.cohorts.width() - 12.0).max(0.0));
+                    ui.spacing_mut().item_spacing = egui::vec2(4.0, 0.0);
+                    self.cohort_controls(ui, now);
+                });
+            });
         egui::Area::new("command dock".into())
             .order(egui::Order::Middle)
             .fixed_pos(layout.dock.min)
@@ -2392,7 +2456,7 @@ impl SoupApp {
                                 divider.y_range().shrink(9.0),
                                 egui::Stroke::new(1.0, studio_ui::LINE),
                             );
-                            studio_ui::menu(ui, "Presets", layout.dock.top(), |ui| {
+                            studio_ui::menu(ui, "Presets", popup_top, |ui| {
                                 self.preset_picker(ui, ctx, now)
                             })
                             .on_hover_text("Fluoddity presets and your saved projects");
@@ -2408,7 +2472,7 @@ impl SoupApp {
                                 icon,
                                 "Interaction tools",
                                 width,
-                                layout.dock.top(),
+                                popup_top,
                                 |ui| self.tool_menu(ui),
                             )
                             .on_hover_text(format!("{} · interaction tools", self.tool.label()));
@@ -2429,7 +2493,7 @@ impl SoupApp {
                                 Icon::More,
                                 "More commands",
                                 width,
-                                layout.dock.top(),
+                                popup_top,
                                 |ui| {
                                     if ui.button("Reset world · R").clicked() {
                                         self.reset();
@@ -4822,7 +4886,8 @@ impl eframe::App for SoupApp {
             self.fps.update(now, controls::performance_dragging(ctx));
         }
         if !self.panels_hidden && !self.notice.is_empty() {
-            let bottom = ctx.content_rect().bottom() - chrome.dock.top() + 10.0;
+            let bottom =
+                ctx.content_rect().bottom() - chrome.dock.top().min(chrome.cohorts.top()) + 10.0;
             let available = if self.show_panels && !chrome.narrow {
                 chrome.inspector.left() - chrome.margin * 2.0
             } else {

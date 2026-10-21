@@ -3,6 +3,7 @@ use eframe::egui::{self, Color32, FontId, Rect, Response, Stroke, Vec2};
 pub const PANEL: Color32 = Color32::from_rgb(21, 21, 24);
 pub const LINE: Color32 = Color32::from_rgb(46, 46, 51);
 pub const SPEED_ROW_HEIGHT: f32 = 32.0;
+pub const COHORT_BUTTON_SIZE: f32 = 44.0;
 pub const TEXT: Color32 = Color32::from_rgb(236, 236, 239);
 pub const MUTED: Color32 = Color32::from_rgb(146, 146, 157);
 pub const ACCENT: Color32 = Color32::from_rgb(210, 212, 222);
@@ -32,6 +33,7 @@ pub struct Layout {
     pub narrow: bool,
     pub compact: bool,
     pub dock: Rect,
+    pub cohorts: Rect,
     pub identity: Rect,
     pub inspector: Rect,
     pub dialogs: Rect,
@@ -47,40 +49,72 @@ impl Layout {
             view.min + Vec2::splat(margin),
             egui::vec2(230.0f32.min(available), 36.0),
         );
-        let width = 320.0f32.min(available);
-        let top = view.top() + margin;
+        let inspector_width = 320.0f32.min(available);
+        let inspector_left = view.right() - margin - inspector_width;
         let readout_height = if readout_visible { 22.0 } else { 0.0 };
         let dock_height = if narrow { 56.0 } else { 48.0 } + readout_height + SPEED_ROW_HEIGHT;
-        let bottom = view.bottom() - margin - if narrow { dock_height + margin } else { 0.0 };
-        let inspector = Rect::from_min_size(
-            egui::pos2(view.right() - margin - width, top),
-            egui::vec2(width, (bottom - top).max(0.0)),
-        );
         let scene_left = view.left() + margin;
         let scene_right = if inspector_open && !narrow {
-            inspector.left() - margin
+            inspector_left - margin
         } else {
             view.right() - margin
         };
-        let dock_width =
-            (if narrow { 280.0f32 } else { 336.0 }).min((scene_right - scene_left).max(0.0));
+        let scene_width = (scene_right - scene_left).max(0.0);
+        let dock_width = (if narrow { 280.0f32 } else { 336.0 }).min(scene_width);
+        let cohort_width = 280.0f32.min(scene_width);
+        let cohort_height = COHORT_BUTTON_SIZE + 12.0;
+        let gap = 12.0;
+        let beside = !narrow && scene_width >= dock_width + gap + cohort_width;
+        let group_width = if beside {
+            cohort_width + gap + dock_width
+        } else {
+            dock_width
+        };
+        let group_left = (scene_left + scene_right - group_width) * 0.5;
         let dock = Rect::from_min_size(
             egui::pos2(
-                (scene_left + scene_right - dock_width) * 0.5,
+                group_left + if beside { cohort_width + gap } else { 0.0 },
                 view.bottom() - margin - dock_height,
             ),
             egui::vec2(dock_width, dock_height),
+        );
+        let cohorts = Rect::from_min_size(
+            egui::pos2(
+                if beside {
+                    group_left
+                } else {
+                    dock.center().x - cohort_width * 0.5
+                },
+                if beside {
+                    dock.bottom() - cohort_height
+                } else {
+                    dock.top() - gap - cohort_height
+                },
+            ),
+            egui::vec2(cohort_width, cohort_height),
+        );
+        let controls_top = dock.top().min(cohorts.top());
+        let top = view.top() + margin;
+        let bottom = if narrow {
+            controls_top - margin
+        } else {
+            view.bottom() - margin
+        };
+        let inspector = Rect::from_min_size(
+            egui::pos2(inspector_left, top),
+            egui::vec2(inspector_width, (bottom - top).max(0.0)),
         );
         Self {
             margin,
             narrow,
             compact,
             dock,
+            cohorts,
             identity,
             inspector,
             dialogs: Rect::from_min_max(
                 view.min + Vec2::splat(margin),
-                egui::pos2(view.right() - margin, dock.top() - margin),
+                egui::pos2(view.right() - margin, controls_top - margin),
             ),
         }
     }
@@ -392,6 +426,63 @@ pub fn action(ui: &mut egui::Ui, icon: Icon, label: &str, width: f32, primary: b
     response
 }
 
+pub(crate) fn cohort_button(ui: &mut egui::Ui, count: u32, selected: bool) -> Response {
+    let size = COHORT_BUTTON_SIZE;
+    let response = ui.add_sized([size, size], egui::Button::new("").frame(false));
+    let label = format!("{count} {}", if count == 1 { "cohort" } else { "cohorts" });
+    response.widget_info(|| {
+        egui::WidgetInfo::selected(egui::WidgetType::Button, ui.is_enabled(), selected, &label)
+    });
+    let color = if !ui.is_enabled() {
+        MUTED.gamma_multiply(0.4)
+    } else if selected || response.hovered() {
+        TEXT
+    } else {
+        MUTED
+    };
+    let rect = Rect::from_center_size(response.rect.center(), Vec2::splat(32.0));
+    let fill = if ui.is_enabled() && (selected || response.hovered()) {
+        Color32::from_rgb(38, 38, 44)
+    } else {
+        Color32::TRANSPARENT
+    };
+    ui.painter().rect(
+        rect,
+        7,
+        fill,
+        Stroke::new(1.2, color),
+        egui::StrokeKind::Inside,
+    );
+    let side = count.isqrt();
+    let grid = rect.shrink(6.0);
+    let radius = match side {
+        1 => 4.5,
+        2 => 3.1,
+        _ => 1.6,
+    };
+    for y in 0..side {
+        for x in 0..side {
+            let center = grid.min
+                + grid.size()
+                    * egui::vec2(
+                        (x as f32 + 0.5) / side as f32,
+                        (y as f32 + 0.5) / side as f32,
+                    );
+            ui.painter()
+                .circle_stroke(center, radius, Stroke::new(1.1, color));
+        }
+    }
+    if response.has_focus() {
+        ui.painter().rect_stroke(
+            rect.expand(3.0),
+            9,
+            Stroke::new(1.0, ACCENT),
+            egui::StrokeKind::Inside,
+        );
+    }
+    response.on_hover_text(format!("{label} · restart the world in a grid"))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -407,17 +498,32 @@ mod tests {
             for open in [false, true] {
                 let layout = Layout::new(view, open, true);
                 assert!(view.contains_rect(layout.dock));
+                assert!(view.contains_rect(layout.cohorts));
                 assert!(view.contains_rect(layout.identity));
                 assert!(view.contains_rect(layout.inspector));
                 assert!(view.contains_rect(layout.dialogs));
                 assert!(!layout.dialogs.intersects(layout.dock));
+                assert!(!layout.dialogs.intersects(layout.cohorts));
+                assert!(!layout.cohorts.intersects(layout.dock));
+                if layout.cohorts.right() < layout.dock.left() {
+                    assert_eq!(layout.cohorts.bottom(), layout.dock.bottom());
+                }
                 assert!(layout.inspector.width() <= 320.0);
                 assert!(layout.dock.width() <= 344.0);
                 if open {
                     assert!(!layout.dock.intersects(layout.inspector));
+                    assert!(!layout.cohorts.intersects(layout.inspector));
                 } else {
                     assert!(!layout.dock.intersects(layout.identity));
-                    assert_eq!(layout.dock.center().x, view.center().x);
+                    assert_eq!(
+                        layout.dock.union(layout.cohorts).center().x,
+                        view.center().x
+                    );
+                    if size[0] == 320.0 {
+                        assert!(layout.cohorts.bottom() < layout.dock.top());
+                    } else if size[0] == 1440.0 {
+                        assert!(layout.cohorts.right() < layout.dock.left());
+                    }
                 }
             }
         }

@@ -114,6 +114,39 @@ pub(crate) fn physics_speed_bar(ui: &mut Ui, value: &mut u32, fixed_rate: bool) 
     })
     .inner
 }
+pub(crate) fn mutation_bar(ui: &mut Ui, value: &mut f64) -> Response {
+    ui.push_id("dock mutation", |ui| {
+        ui.spacing_mut().item_spacing.y = 2.0;
+        ui.spacing_mut().interact_size.y = 16.0;
+        let label = ui
+            .horizontal(|ui| {
+                let label = ui.label(egui::RichText::new("Mutation").size(11.0));
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    ui.label(
+                        egui::RichText::new(format!("{value:.3}"))
+                            .size(11.0)
+                            .color(crate::studio_ui::MUTED),
+                    );
+                });
+                label
+            })
+            .inner;
+        ui.spacing_mut().interact_size.y = 26.0;
+        ui.spacing_mut().slider_width = ui.available_width();
+        ui.add(
+            egui::Slider::new(value, 0.0..=0.6)
+                .clamping(egui::SliderClamping::Edits)
+                .step_by(0.001)
+                .show_value(false)
+                .trailing_fill(true),
+        )
+        .labelled_by(label.id)
+        .on_hover_text(
+            "Variation around the parent behavior. 0 keeps cohorts identical. Release to apply.",
+        )
+    })
+    .inner
+}
 fn position(value: f64, lo: f64, hi: f64, curve: f64) -> f64 {
     ((value - lo) / (hi - lo)).clamp(0.0, 1.0).powf(1.0 / curve)
 }
@@ -678,6 +711,7 @@ mod tests {
         project.config_mut().sensor_distance = 7.0;
         project.config_mut().strafe_power = 0.8;
         project.config_mut().gravity_force = 1.5;
+        project.config_mut().mutation_scale = 0.9;
         project.world.trail_diffusion = -0.25;
         let mut prefs = Preferences {
             advanced_project: true,
@@ -720,6 +754,7 @@ mod tests {
                         ui.push_id("drawing", |ui| drawing_panel(ui, &mut prefs));
                         physics_speed_bar(ui, &mut prefs.physics_steps, false);
                         physics_speed_bar(ui, &mut fixed_rate, true);
+                        mutation_bar(ui, &mut project.config_mut().mutation_scale);
                     },
                 );
                 output.textures_delta.clear();
