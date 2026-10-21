@@ -71,6 +71,20 @@ pub async fn start(canvas: web_sys::HtmlCanvasElement) -> Result<(), JsValue> {
             "ticks" => opts.ticks_per_second = value.parse().ok(),
             "fps" => opts.presentation_fps = value.parse().ok(),
             "debug" => opts.debug = true,
+            "style" => {
+                opts.style = match value.as_str() {
+                    "classic" => Some(crate::cells::Style::Classic),
+                    "cells" => Some(crate::cells::Style::Cells),
+                    _ => None,
+                }
+            }
+            "gpu-timing" => {
+                opts.gpu_timing = match value.as_str() {
+                    "off" => Some(false),
+                    "on" => Some(true),
+                    _ => None,
+                }
+            }
             "paused" => opts.paused = true,
             "nopanel" => opts.no_panels = true,
             "nocalibrate" => opts.no_calibrate = true,

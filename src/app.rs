@@ -30,6 +30,8 @@ pub struct StartOptions {
     pub presentation_fps: Option<u32>,
     pub paused: bool,
     pub debug: bool,
+    pub gpu_timing: Option<bool>,
+    pub style: Option<crate::cells::Style>,
     pub trail_mode: bool,
     pub no_panels: bool,
     pub shared: Option<String>,
@@ -159,6 +161,19 @@ struct PendingRenderer {
     previous: crate::cells::Settings,
     result: Arc<Mutex<Option<Option<String>>>>,
 }
+struct FrameSampling {
+    interval: Duration,
+    last_started: Option<Instant>,
+}
+impl FrameSampling {
+    fn due(&self, now: Instant) -> bool {
+        self.last_started
+            .is_none_or(|last| now.saturating_duration_since(last) >= self.interval)
+    }
+    fn started(&mut self, now: Instant) {
+        self.last_started = Some(now);
+    }
+}
 enum InspectorAction {
     Mode(crate::network::Mode),
     Layout(u32),
@@ -212,8 +227,10 @@ pub struct SoupApp {
     profiling_enabled: bool,
     profiler: Option<crate::profiling::GpuProfiler>,
     last_gpu_sample: Option<crate::profiling::GpuSample>,
-    /// Always-on frame total; stage profiling supplies the total instead while enabled.
     frame_timer: Option<crate::profiling::FrameTimer>,
+    frame_sampling: FrameSampling,
+    discard_timer_results: bool,
+    gpu_result_received: Option<Instant>,
     gpu_window: crate::performance::GpuWindow,
     tick_rate: crate::performance::RateWindow,
     /// Logical ticks executed and requested in the most recent scene submission.
@@ -522,6 +539,9 @@ impl SoupApp {
         if let Some(v) = opts.physics_steps {
             state.prefs.physics_steps = v.clamp(1, 120);
         }
+        if let Some(style) = opts.style {
+            state.prefs.cells.style = style;
+        }
         if let Some(v) = opts.ticks_per_second {
             state.simulation.mode = crate::simulation::SimulationMode::FixedRate;
             state.simulation.ticks_per_second = v;
@@ -555,7 +575,9 @@ impl SoupApp {
         history.seed(state.project.clone());
         studio_ui::install(&cc.egui_ctx);
         let now = Instant::now();
-        let frame_timer = crate::profiling::FrameTimer::new(&rs.device, &rs.queue);
+        let frame_timer = (opts.gpu_timing != Some(false))
+            .then(|| crate::profiling::FrameTimer::new(&rs.device, &rs.queue))
+            .flatten();
         let mut app = Self {
             pending_project: None,
             pending_renderer: None,
@@ -599,6 +621,16 @@ impl SoupApp {
             profiler: None,
             last_gpu_sample: None,
             frame_timer,
+            frame_sampling: FrameSampling {
+                interval: Duration::from_millis(if opts.gpu_timing == Some(true) {
+                    0
+                } else {
+                    250
+                }),
+                last_started: None,
+            },
+            discard_timer_results: false,
+            gpu_result_received: None,
             gpu_window: Default::default(),
             tick_rate: Default::default(),
             last_scene_steps: [0; 2],
@@ -884,12 +916,19 @@ impl SoupApp {
         if let Some(profiler) = self.profiler.as_mut() {
             for sample in profiler.poll(&self.rs.device, &self.rs.queue) {
                 self.gpu_window.push(now, sample.total_ms);
+                self.gpu_result_received = Some(Instant::now());
                 self.last_gpu_sample = Some(sample);
             }
         }
         if let Some(timer) = self.frame_timer.as_mut() {
             for total in timer.poll() {
-                self.gpu_window.push(now, total);
+                if !self.profiling_enabled && !self.discard_timer_results {
+                    self.gpu_window.push(now, total);
+                    self.gpu_result_received = Some(Instant::now());
+                }
+            }
+            if !timer.has_pending() {
+                self.discard_timer_results = false;
             }
         }
         if let Some(r) = self.recorder.as_mut() {
@@ -1164,9 +1203,19 @@ impl SoupApp {
         };
         if let (Some(median), Some(p95)) = (self.gpu_window.median(), self.gpu_window.p95()) {
             text += &format!(
-                "\n\nGPU {median:.2} ms median · {p95:.2} ms p95 over the last second of scene work (budget {:.0} ms)",
+                "\n\nGPU {median:.2} ms median · {p95:.2} ms p95 across {} sampled scenes (budget {:.0} ms)",
+                self.gpu_window.len(),
                 crate::performance::TARGET_GPU_MS
             );
+            if !self.profiling_enabled && !self.frame_sampling.interval.is_zero() {
+                text += "\nRoutine totals sampled at most every 250 ms.";
+            }
+            if let Some(received) = self.gpu_result_received {
+                text += &format!(
+                    "\nLast GPU result received {:.1} s ago.",
+                    received.elapsed().as_secs_f64()
+                );
+            }
             if let Some(sample) = self.stage_sample() {
                 text += "\nLast profiled frame:";
                 for (name, ms) in crate::profiling::Stage::NAMES
@@ -1268,16 +1317,25 @@ impl SoupApp {
         use crate::performance::{Band, TARGET_GPU_MS};
         let (Some(median), Some(p95)) = (self.gpu_window.median(), self.gpu_window.p95()) else {
             ui.small(if self.frame_timer.is_none() && self.profiler.is_none() {
-                "GPU timestamps are unavailable on this device; CPU timings remain available."
+                "GPU timing is disabled or unavailable; CPU timings remain available."
             } else {
                 "GPU time appears after the next scene submission."
             });
             return;
         };
         ui.monospace(format!(
-            "GPU frame      {median:.2} ms median · {p95:.2} ms p95 · {} frames",
+            "GPU samples    {median:.2} ms median · {p95:.2} ms p95 · {} scenes",
             self.gpu_window.len()
         ));
+        if !self.profiling_enabled && !self.frame_sampling.interval.is_zero() {
+            ui.small("Totals sampled at most every 250 ms; p95 covers sampled scenes.");
+        }
+        if let Some(received) = self.gpu_result_received {
+            ui.small(format!(
+                "Last GPU result received {:.1} s ago.",
+                received.elapsed().as_secs_f64()
+            ));
+        }
         let width = ui.available_width().clamp(120.0, 340.0);
         let (rect, _) = ui.allocate_exact_size(egui::vec2(width, 12.0), Sense::hover());
         let full_scale = (TARGET_GPU_MS * 2.0).max(p95 * 1.1);
@@ -1429,6 +1487,13 @@ impl SoupApp {
                 "target_ms": crate::performance::TARGET_GPU_MS,
                 "timestamps_rounded_to_0_1_ms": self.gpu_window.quantized(),
                 "method": if self.profiling_enabled { "stage profiler" } else { "frame timer" },
+                "sample_interval_ms": if self.profiling_enabled || self.frame_timer.is_none() {
+                    None
+                } else {
+                    Some(self.frame_sampling.interval.as_secs_f64() * 1000.0)
+                },
+                "percentiles_over": "sampled scenes",
+                "last_result_received_ms_ago": self.gpu_result_received.map(|at| at.elapsed().as_secs_f64() * 1000.0),
                 "stages": stages,
             },
             "fps": {
@@ -1545,6 +1610,10 @@ impl SoupApp {
                 let previous = self.profiling_enabled;
                 ui.add_enabled(!self.comparison_busy(),egui::Checkbox::new(&mut self.profiling_enabled,"Profile GPU stages (locks calibration)"));
                 if previous != self.profiling_enabled {
+                    self.gpu_window = Default::default();
+                    self.gpu_result_received = None;
+                    self.discard_timer_results = true;
+                    self.frame_sampling.last_started = None;
                     if self.profiling_enabled {
                         self.cancel_rate_calibration();
                         self.calibration = None;
@@ -4439,13 +4508,21 @@ impl SoupApp {
             None
         };
         // Stage profiling reports its own frame total; never instrument a frame twice.
-        let mut frame_timing = if !self.profiling_enabled && self.calibration.is_none() {
+        let timing_now = Instant::now();
+        let mut frame_timing = if !self.profiling_enabled
+            && !self.discard_timer_results
+            && self.calibration.is_none()
+            && self.frame_sampling.due(timing_now)
+        {
             self.frame_timer
                 .as_mut()
                 .and_then(|t| t.begin(&mut encoder))
         } else {
             None
         };
+        if frame_timing.is_some() {
+            self.frame_sampling.started(timing_now);
+        }
         let camera_polling = self.webcam.needs_poll();
         self.webcam.encode(
             &d,
@@ -5072,7 +5149,7 @@ impl eframe::App for SoupApp {
         #[cfg(target_arch = "wasm32")]
         if ctx.current_pass_index() == 0 && self.status_text.is_some() {
             let text = format!(
-                "frame={} substep={} particles={} preset={} paused={} camera={} error={} export_gpu_bytes={} ticks={} pending={} debt={} mode={:?} presentation_fps={} visible={} submissions={} calibration={} encode_ms={:.4} submit_ms={:.4} presentations={} requested_ms={:?} ticks_per_second={} network={} network_pending={} comparison={}",
+                "frame={} substep={} particles={} preset={} paused={} camera={} error={} export_gpu_bytes={} ticks={} pending={} debt={} mode={:?} presentation_fps={} visible={} submissions={} calibration={} encode_ms={:.4} submit_ms={:.4} presentations={} requested_ms={:?} ticks_per_second={} network={} network_pending={} comparison={} style={} trails={}x{} render={}x{} workgroup={} frame_ms={:.4} gpu_median_ms={:?} gpu_samples={} gpu_sample_interval_ms={}",
                 self.frames,
                 self.gpu.frame_count,
                 self.gpu.sizing.entity_count,
@@ -5108,7 +5185,17 @@ impl eframe::App for SoupApp {
                         .as_ref()
                         .and_then(|r| r["status"].as_str())
                         .unwrap_or("none")
-                }
+                },
+                self.style_label(),
+                self.gpu.sizing.canvas[0],
+                self.gpu.sizing.canvas[1],
+                self.render.size[0],
+                self.render.size[1],
+                self.workgroup,
+                self.frame_interval_ms,
+                self.gpu_window.median(),
+                self.gpu_window.len(),
+                self.frame_sampling.interval.as_millis(),
             );
             if self.status_text.as_ref() != Some(&text) {
                 crate::web::status(&text);
@@ -5486,6 +5573,25 @@ mod preview_persistence_tests {
 #[cfg(test)]
 mod pacing_tests {
     use super::*;
+
+    #[test]
+    fn gpu_sampling_waits_for_success_and_never_catches_up() {
+        let now = Instant::now();
+        let mut sampling = FrameSampling {
+            interval: Duration::from_millis(250),
+            last_started: None,
+        };
+        assert!(sampling.due(now));
+        assert!(sampling.due(now + Duration::from_secs(1)));
+        sampling.started(now + Duration::from_secs(1));
+        assert!(!sampling.due(now + Duration::from_millis(1249)));
+        assert!(sampling.due(now + Duration::from_millis(1250)));
+        sampling.started(now + Duration::from_secs(10));
+        assert!(!sampling.due(now + Duration::from_millis(10001)));
+        assert!(sampling.due(now + Duration::from_millis(10250)));
+        sampling.interval = Duration::ZERO;
+        assert!(sampling.due(now + Duration::from_secs(10)));
+    }
 
     fn key(reticle: [f32; 2], radius: f32, highlight: f32, prefs: &Preferences) -> PresentationKey {
         PresentationKey::new(

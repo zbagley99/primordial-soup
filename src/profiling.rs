@@ -298,9 +298,6 @@ fn timestamp_boundary(encoder: &mut wgpu::CommandEncoder, queries: &wgpu::QueryS
     });
 }
 
-/// Always-on frame total: two portable timestamps around a scene submission. Unlike
-/// GpuProfiler it adds only two empty pass boundaries, so it never locks calibration.
-/// Readbacks are bounded by the ring and never waited on; a full ring skips frames.
 const TIMER_SLOTS: usize = 3;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum TimerState {
@@ -317,6 +314,8 @@ struct TimerSlot {
     readback: wgpu::Buffer,
     state: Option<TimerStatus>,
 }
+/// Two portable scene timestamps with bounded, nonblocking readbacks.
+/// Callers choose which scenes to sample; a full ring skips recording.
 pub struct FrameTimer {
     slots: Vec<TimerSlot>,
     period: f32,
