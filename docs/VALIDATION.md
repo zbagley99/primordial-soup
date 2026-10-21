@@ -1,8 +1,14 @@
 # Validation protocol
 
-Run CPU checks with `python3 scripts/low-load.py cargo test --locked -- --test-threads=1`.
-The launcher constrains compilation, the linker, and their descendants to one
-low-priority CPU. Run one GPU validation or benchmark process at a time.
+Run CPU checks with `cargo test --locked -- --test-threads=1` at normal priority.
+The optional `python3 scripts/low-load.py` launcher constrains compilation, the
+linker, and their descendants to one low-priority CPU. Web builds use normal
+priority unless `LOW_PRIO=1` is set. Run one GPU validation or benchmark process
+at a time.
+
+The [browser performance campaign](BROWSER_PERFORMANCE_RESULTS.md) records the
+matched workloads, exact-state checks, measurements and browser limitations for
+the Fourier storage and routine timing changes.
 
 ## Independent numerical evidence
 
