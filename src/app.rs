@@ -96,7 +96,7 @@ impl Default for SavedState {
             camera_settings: Default::default(),
             recording_settings: Default::default(),
             simulation: Default::default(),
-            auto_calibrate: true,
+            auto_calibrate: false,
         }
     }
 }
@@ -5359,19 +5359,26 @@ mod preview_persistence_tests {
         assert_eq!(fresh.project.name, "Diversity");
         assert_eq!(fresh.prefs.cells.style, crate::cells::Style::Cells);
         assert_eq!(fresh.prefs.world_size, 1.0);
+        assert_eq!(fresh.prefs.physics_steps, 5);
+        assert_eq!(fresh.project.config().mutation_scale, 0.2);
+        assert!(!fresh.auto_calibrate);
 
-        let saved = SavedState {
+        let mut saved = SavedState {
             project: Project::default(),
             prefs: Preferences {
                 brightness: 2.7,
+                physics_steps: 17,
                 ..Default::default()
             },
+            auto_calibrate: true,
             ..Default::default()
         };
+        saved.project.config_mut().mutation_scale = 0.45;
         let restored: SavedState =
             serde_json::from_str(&serde_json::to_string(&saved).unwrap()).unwrap();
         assert_eq!(restored.project, saved.project);
         assert_eq!(restored.prefs, saved.prefs);
+        assert!(restored.auto_calibrate);
     }
     #[test]
     fn complete_saved_state_roundtrips_eframe_ron_and_migrates_old_cells() {

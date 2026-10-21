@@ -35,9 +35,9 @@ make run LOW_PRIO=1
 
 Native rendering uses the hardware adapter and refuses software GPU fallback.
 Once built, `target/release/primordial-soup` also launches the app directly.
-The first visit calibrates the GPU using the reference's bounded progression;
-More → Simulation → Auto-calibrate GPU reruns it. World size, physics rate, temporal
-samples and bloom remain adjustable.
+Fresh sessions start at Physics Rate **5** without automatic startup calibration.
+More → Simulation → Auto-calibrate GPU runs the reference's bounded progression.
+World size, physics rate, temporal samples and bloom remain adjustable.
 
 Right-click the Physics readout above playback, or choose
 More → Simulation → Auto-calibrate Physics Rate, to tune the current project using full rendered frame intervals.
@@ -107,8 +107,9 @@ but the browser may finish its already-started muxing before releasing it.
 ## Cellular appearance
 
 Fresh sessions start with the captured, modified **Diversity** project in Cells
-mode. Its rule, mutation seed, four cohorts and physics settings come from the
-local project export; existing saved projects and preferences still take precedence.
+mode at Mutation **0.2** and Physics Rate **5**. Its rule, mutation seed and four
+cohorts come from the local project export; existing saved projects and preferences
+still take precedence.
 
 Choose **Inspector → Look → Cells** for density-sized particles, subtle cell
 relief and a smooth color wash. Cells defaults to **Dark** with the existing

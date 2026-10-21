@@ -50,6 +50,9 @@ the dock. Inspector, dialog and notice bounds account for both panels.
 Fresh application state uses the captured modified Diversity project, with Cells
 selected and world size 1. The Cells appearance and shared lighting defaults match
 the local Look settings captured on 2026-10-21. Existing saved values take precedence.
+Fresh sessions use Physics Rate 5 and Mutation 0.2, with automatic startup
+calibration disabled so it cannot replace the requested rate. Manual calibration
+and saved calibration preferences remain available.
 Right-clicking the Select canvas with no highlight restores the previous project
 and resets particles, swarm trails and the clock after that project applies.
 Dismissing a highlight, an empty history and a rejected history change do not reset.
