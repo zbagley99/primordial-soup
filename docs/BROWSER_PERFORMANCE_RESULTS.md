@@ -247,3 +247,48 @@ fresh-tab screenshots succeeded. The timing constraint described above still
 prevents a browser frame-rate acceptance claim. No particular laptop GPU or
 vendor is targeted, and equivalence to desktop browser responsiveness remains
 unverified on the reported systems.
+
+## Safari shader compiler compatibility follow-up
+
+The MacBook Safari report identified an independent startup failure in
+`entityUpdate.wgsl`. WebKit generated an atomic compare-exchange result whose
+field type was `thread int`, which Metal rejects. The reported helper matches
+the defect corrected in [WebKit's translator](https://github.com/WebKit/WebKit/blob/4f56cc248e8a2e447f77d54d7612d2a6128daccb/Source/WebGPU/WGSL/Metal/MetalFunctionWriter.cpp#L745-L761).
+The unused narrow occupancy helper was still compiled for Fourier despite its
+false specialization branch. Safari release inclusion of the upstream fix was
+not established. Preserving the first GPU error also prevents later invalid
+encoder errors from hiding the compiler failure.
+
+The narrow occupancy path now uses exchange-and-merge accumulation. Contributions
+may temporarily reside in invocation locals; the canvas reads only after the
+entity dispatch completes. Its saturated sum and integer bounds are preserved.
+The wide add/carry path, network equations, render quality, buffers and device
+requirements are unchanged. This is a shared implementation change, with no
+browser detection.
+
+An independent finite-state model checked 668,633 states across 1,406 cases,
+including termination, followed by 32 randomized 1,024-contender schedules.
+Hardware checks passed all 54 occupancy mode/layout/case combinations, each
+repeated three times against the frozen CAS implementation and independent
+host sums. These include forced three-lane allocation, 4,099 contending
+invocations, unsaturated and already-saturated counters, untouched pixels and
+momentum sentinels. Numerical, painted-field, transition and smoke checks passed.
+
+Four workloads then ran three alternating pairs of 300 measured frames against
+the prior production GPU checker, with the campaign's world-1, 600,000-particle,
+1080p, five-step fixtures. All four first-repetition full states and all twelve
+paired PNGs matched exactly. GPU mean changes were +2.46% for Fourier Classic,
+−1.91% for Fourier Cells, +0.29% for MLP Classic and +0.40% for GRU Classic.
+Fourier Classic pairs varied from −1.23% to +8.14%. Cells CPU encoding increased
+by 0.0267 ms (+6.26%) in all three pairs, while its completed-frame mean fell
+0.81%; that encoding observation remains unexplained. These RTX 3090/Vulkan
+measurements establish neither a speedup nor performance equivalence.
+
+![Compatibility change, individual paired timing differences](assets/browser-performance-20261021/safari-compatibility.png)
+
+Forced three-lane correctness is covered; its throughput is unmeasured. Original
+Safari compilation and continued simulation require a reload of the deployed
+build on the reported MacBook. Native tests and Chrome do not establish that
+acceptance. Raw evidence remains under
+`artifacts/local/macbook-encoder-20261021/` and the campaign's
+`macbook-exchange-primary/` directory.
