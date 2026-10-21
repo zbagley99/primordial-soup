@@ -597,12 +597,14 @@ fn add_occupancy(i:u32,amount:f32) {
         if(old>0xffffffffu-u32(addition)){atomicAdd(&splat[i+1u],1);}
         return;
     }
+    // Canvas reads after this dispatch; contributions can temporarily live in invocation locals.
+    var pending=addition;
     loop {
-        let old=atomicLoad(&splat[i]);
-        let next=min(old+addition,DENSITY_FIXED_MAX);
-        if (NETWORK_MODE == 2u && next == old) { return; }
-        let changed=atomicCompareExchangeWeak(&splat[i],old,next);
-        if(changed.exchanged){break;}
+        let taken=atomicExchange(&splat[i],0);
+        let merged=min(pending+taken,DENSITY_FIXED_MAX);
+        // Carry any concurrent contribution displaced while publishing the merge.
+        pending=atomicExchange(&splat[i],merged);
+        if(pending==0){break;}
     }
 }
 fn footprint_amount(size:f32)->f32 {

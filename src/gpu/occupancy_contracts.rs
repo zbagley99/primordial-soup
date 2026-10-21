@@ -34,6 +34,8 @@ pub fn check(d: &wgpu::Device, q: &wgpu::Queue) -> Result<Value> {
                 ("single-carry", 67, 0xffff_fffe, vec![0, 1, 31]),
                 ("multiple-carry", 4099, 0, vec![MAX]),
                 ("mixed-contended", 4099, 0, vec![0, 1, 31, MAX, MAX + 1024]),
+                ("unsaturated-contended", 4099, 31, vec![0, 1, 31, 127]),
+                ("saturated-contended", 4099, u64::from(MAX), vec![0, 1, 31]),
             ] {
                 let mut sums = vec![initial; PIXELS];
                 let lanes = |stride: usize, sums: &[u64]| {
@@ -51,7 +53,7 @@ pub fn check(d: &wgpu::Device, q: &wgpu::Queue) -> Result<Value> {
                 let initial_lanes = [lanes(3, &sums), lanes(stride, &sums)];
                 let mut inputs = Vec::new();
                 for i in 0..count {
-                    let pixel = if name == "multiple-carry" || name == "mixed-contended" {
+                    let pixel = if name == "multiple-carry" || name.contains("contended") {
                         0
                     } else {
                         i % 7
