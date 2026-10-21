@@ -1,6 +1,6 @@
 # Minimal simulation interface
 
-The living system is the main view. One small command dock and a quiet scene
+The living system is the main view. A small command dock, adjacent cohort panel and quiet scene
 label form the default interface. The previous full-width header, permanent tool
 rail, boxed performance card, and green surface treatment have been replaced.
 The inspector stays closed until opened. There is no continuous UI animation.
@@ -31,6 +31,29 @@ starts calibration. Paused FPS is labelled as paused rather than presented as a
 fresh measurement. More → Editor → Diagnostic overlay exposes the detailed
 developer text separately.
 
+A full-width physics speed bar stays between this readout row and playback,
+including when both readouts are disabled. It edits steps per frame in the
+frame-based clock and ticks per second in the fixed clock. X hides the whole dock.
+The extra row is included in the phone inspector and dialog bounds.
+
+An adjacent panel contains outlined 1 / 4 / 16 cohort grid buttons inspired by the
+supplied sketch, with 44-pixel targets and a selected state. They restart the world
+through the existing layout transaction. A small Mutation label, decimal value
+and slider sit beside them. The slider previews its value during a drag and
+applies once on release, retaining one undoable edit. Both controls share the
+existing operation guards, preserve imported values until edited, and hide with X.
+The panel sits to the left of the physics dock, aligned to the same bottom edge,
+when space permits. On narrow
+screens, or beside an inspector that leaves too little width, it stacks above
+the dock. Inspector, dialog and notice bounds account for both panels.
+
+Fresh application state uses the captured modified Diversity project, with Cells
+selected and world size 1. The Cells appearance and shared lighting defaults match
+the local Look settings captured on 2026-10-21. Existing saved values take precedence.
+Right-clicking the Select canvas with no highlight restores the previous project
+and resets particles, swarm trails and the clock after that project applies.
+Dismissing a highlight, an empty history and a rejected history change do not reset.
+
 Neutral charcoal surfaces, subtle borders, restrained corners, and ghost buttons
 keep emphasis on the simulation. Text size, contrast, spacing, and section
 headings distinguish scene context, common actions, and detailed controls.
@@ -41,7 +64,7 @@ other actionable notices remain visible.
 ## Preserved contracts
 
 The full CentralPanel canvas, camera mapping, shaders, simulation, preference
-schema/defaults, imported values, control ranges/curves, integer and inverted
+schema, imported values, control ranges/curves, integer and inverted
 values, gate thresholds, changed-only writes, recording guards, and project
 history transactions remain. Physics drag tracking and measured cost tooltips
 remain. Rendering controls without input must not clamp imported values.
@@ -67,7 +90,7 @@ A matched 1440 × 900 clean simulation export at 180 ticks is pixel-identical to
 the pre-redesign reference. The on-demand inspector, touch gestures and camera
 changes do not establish visual acceptance by the user.
 
-Measured rectangular surface bounds with the inspector closed cover 11.1% →
+Before the persistent speed bar, measured rectangular surface bounds with the inspector closed covered 11.1% →
 1.9% of the desktop viewport and 23.8% → 6.9% on the phone, including performance
 and rate controls. These are frame bounds, including rounded corner cutouts;
 scene text, shadows, menus and temporary messages are excluded. Source captures,
@@ -98,6 +121,24 @@ views, including the 7,200 ticks/s label and both performance readouts disabled.
 X hides and restores the controls without advancing the paused simulation.
 The native check and WebAssembly distribution build pass. Evidence is under
 `artifacts/local/hide-hint-20261021/`.
+
+The subsequent captured defaults and persistent speed bar pass 113 Rust checks
+and the WebAssembly build. Fresh browser state loads the exported Diversity
+project in Cells at world size 1. Right-click backtracking resets an evolved
+canvas from 2,805 completed ticks to zero; ordinary undo/redo, highlight dismissal
+and empty history preserve progress. The bar edits both clocks while paused.
+At 320 CSS pixels, the inspector clears the bar, including with both optional
+readouts disabled. X hides and restores the controls without advancing the clock.
+These checks use the intentionally updated appearance defaults, so the earlier
+pixel-equality results describe the preceding UI campaign. Build provenance and
+observations are under `artifacts/local/cell-defaults-20261021/`.
+
+Cohort controls were checked on hardware WebGPU at desktop, 320 × 568 and
+844 × 390. The 1 / 4 / 16 buttons produce the matching grids and restart time;
+mutation release outside the track applies the final value, and one undo restores
+the prior scale while paused. Both panels hide with X. The short-landscape Guide
+scrolls above the controls. The 113 Rust checks, final bottom-alignment regression
+and web build pass; evidence is under `artifacts/local/cohort-controls-20261021/`.
 
 Local evidence is under `artifacts/local/ui-minimal-20261020/`. Entry source,
 diff, and the rejected web build are archived before edits. No simulation FPS

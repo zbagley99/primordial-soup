@@ -106,11 +106,15 @@ but the browser may finish its already-started muxing before releasing it.
 
 ## Cellular appearance
 
+Fresh sessions start with the captured, modified **Diversity** project in Cells
+mode. Its rule, mutation seed, four cohorts and physics settings come from the
+local project export; existing saved projects and preferences still take precedence.
+
 Choose **Inspector → Look → Cells** for density-sized particles, subtle cell
 relief and a smooth color wash. Cells defaults to **Dark** with the existing
 particle colors; **Light** retains the pale background. Choose either theme in
-**Inspector → Look**. The green/pink palette is optional under Advanced. **Classic** remains
-the default rendering style. Appearance works independently of Fourier / MLP /
+**Inspector → Look**. The green/pink palette is optional under Advanced. **Classic** is
+also available. Appearance works independently of Fourier / MLP /
 GRU and is included in clean PNG and video output. Paused appearance edits do
 not advance the world.
 
@@ -251,12 +255,21 @@ The bottom dock keeps playback, **Presets**, interaction tools, **Inspect**, and
 controls. Selecting a tool leaves the inspector closed; open Brush settings
 from the tool menu. Reset and stepping are also available in **More**, with
 Step beside playback on desktop. See the [UI design and validation notes](docs/UI_DESIGN.md).
-FPS and Physics Rate stay visible above playback by default. Hide either
-independently in **Inspect → Settings → Performance**.
+The physics speed bar stays visible above playback and adjusts the active
+frame-based or fixed-tick clock. **X** hides it with the other controls.
+The separate panel beside the physics dock has outlined buttons for **1**,
+**2 × 2**, or **4 × 4** cohorts, each restarting the world.
+The small **Mutation** slider beside them adjusts variation
+around the parent behavior; release the slider to apply the change.
+The panels stack on narrow screens and both hide with **X**.
+FPS and Physics Rate readouts remain independently toggleable in
+**Inspect → Settings → Performance**.
 **Home** resets the view. Wheel zooms at
 the pointer, middle drag or **WASD** pans, and **Q/E** zooms. Tools **1–4** are
 Select, Shove, Walls and Trails. Right drag pulls/erases. Shift+click builds
 straight line segments. Wall and trail fields clear independently.
+In Select, right-click dismisses a highlighted cohort; otherwise it restores the
+previous generation and resets particles, trails and simulation time.
 
 **More → Share** provides project links, QR-stamped screenshots and offline video export.
 **P** opens crop capture; drag anywhere on the canvas to choose the crop.
