@@ -628,7 +628,13 @@ impl Cells {
         let batch_settings = d.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Cells sprite batch settings"),
             size: 32,
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            usage: wgpu::BufferUsages::UNIFORM
+                | wgpu::BufferUsages::COPY_DST
+                | if cfg!(not(target_arch = "wasm32")) {
+                    wgpu::BufferUsages::COPY_SRC
+                } else {
+                    wgpu::BufferUsages::empty()
+                },
             mapped_at_creation: false,
         });
         let sprite_list = make_buffer("Cells listed sprite copies", u64::from(capacity) * 8);
@@ -1278,6 +1284,10 @@ impl Cells {
     /// overlap bound, listed copies, compact/fallback mode, and reserved word.
     pub fn sprite_plan_buffer(&self) -> &wgpu::Buffer {
         &self.plan
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn sprite_batch_settings_buffer(&self) -> &wgpu::Buffer {
+        &self.batch_settings
     }
     /// Enable Fast Cells gathering; unsupported adapters retain the raster path.
     pub fn enable_tiled(

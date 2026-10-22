@@ -2475,7 +2475,11 @@ mod native {
                     }
                 }
                 ensure!(
-                    reference.5 == if count == n { 1 } else { 0 },
+                    if count == n {
+                        matches!(reference.5, 1 | 2)
+                    } else {
+                        reference.5 == 0
+                    },
                     "Unexpected planner mode in tiled fixture {name}"
                 );
                 for (index, candidate) in snapshots.iter().enumerate().skip(1) {
@@ -2561,6 +2565,98 @@ mod native {
             json!({"reference":"analytic pixel distances; compatibility with original separate","campaign_baseline_exact":baseline_dir.is_some(),"same_engine_particles":true,"simulation_unchanged":true,"cases":results}),
         )
     }
+    #[allow(clippy::too_many_arguments)]
+    fn capture_cells_frame(
+        d: &wgpu::Device,
+        q: &wgpu::Queue,
+        engine: &Engine,
+        renderer: &Renderer,
+        project: &Project,
+        prefs: &Preferences,
+        camera: &Camera,
+        samples: u32,
+        highlight: f32,
+    ) -> Result<()> {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        static NEXT: AtomicUsize = AtomicUsize::new(0);
+        let args: Vec<_> = std::env::args().collect();
+        let Some(index) = args.iter().position(|arg| arg == "--cells-capture-dir") else {
+            return Ok(());
+        };
+        let directory = args
+            .get(index + 1)
+            .filter(|path| !path.is_empty() && !path.starts_with("--"))
+            .context("--cells-capture-dir needs a directory")?;
+        let Some(cells) = renderer.cells.as_ref().filter(|_| renderer.cells_active()) else {
+            return Ok(());
+        };
+        let directory =
+            Path::new(directory).join(format!("{:04}", NEXT.fetch_add(1, Ordering::Relaxed)));
+        std::fs::create_dir_all(&directory)?;
+        let mut files = serde_json::Map::new();
+        let mut save = |name: &str, bytes: Vec<u8>| -> Result<()> {
+            std::fs::write(directory.join(name), &bytes)?;
+            files.insert(
+                name.into(),
+                json!({"bytes":bytes.len(),"fnv1a64":bytes_hash(&bytes)}),
+            );
+            Ok(())
+        };
+        save(
+            "image.rgba32f",
+            tex(d, q, &cells.images[cells.active], cells.padded, 16)?,
+        )?;
+        save(
+            "selection.r32f",
+            tex(d, q, cells.selected_texture(), cells.padded, 4)?,
+        )?;
+        save(
+            "map.rgba32f",
+            tex(d, q, &cells.maps[cells.displayed_map], cells.map_size, 16)?,
+        )?;
+        save(
+            "output.rgba8",
+            tex(d, q, renderer.output_texture(), renderer.size, 4)?,
+        )?;
+        save(
+            "clean.rgba8",
+            tex(d, q, renderer.clean_texture()?, renderer.size, 4)?,
+        )?;
+        let transition = ((camera.zoom - 2.0) / 6.0).clamp(0.0, 1.0);
+        let membranes =
+            prefs.cells.membranes * transition * transition * (3.0 - 2.0 * transition) > 0.0;
+        if membranes {
+            let sites = cells.membrane_sites_buffer();
+            save("sites.u32", read(d, q, sites, sites.size())?)?;
+            save(
+                "membranes.f32",
+                read(d, q, &cells.membrane_history, cells.membrane_history.size())?,
+            )?;
+        }
+        let plan = read(d, q, cells.sprite_plan_buffer(), 16)?;
+        let words: Vec<_> = plan
+            .chunks_exact(4)
+            .map(|word| u32::from_le_bytes(word.try_into().unwrap()))
+            .collect();
+        let batch_settings = read(d, q, cells.sprite_batch_settings_buffer(), 32)?;
+        let batch_settings_words: Vec<_> = batch_settings
+            .chunks_exact(4)
+            .map(|word| u32::from_le_bytes(word.try_into().unwrap()))
+            .collect();
+        let metadata = json!({"format":"cells-frame-capture-v1","byte_order":"little_endian",
+            "files":files,"output":renderer.size,"padded":cells.padded,"map_size":cells.map_size,
+            "samples":samples,"highlight_bits":highlight.to_bits(),"membranes_valid":membranes,
+            "camera":{"pan_bits":camera.pan.map(f32::to_bits),"zoom_bits":camera.zoom.to_bits(),"trail_mode":camera.trail_mode},
+            "cells_settings":prefs.cells,"boundary":project.world.boundary_conditions,
+            "particles":engine.sizing.entity_count,"simulation_tick":engine.frame_count,
+            "planner_words":words,"batch_settings_words":batch_settings_words,"tiled_state":tiled_state(d, q, renderer)?,
+            "note":"Compare every raw file exactly. Planner execution mode may explicitly change 1 to 2; other metadata and raw values are not normalized."});
+        std::fs::write(
+            directory.join("capture.json"),
+            serde_json::to_vec_pretty(&metadata)?,
+        )?;
+        Ok(())
+    }
     fn cells_frame(
         d: &wgpu::Device,
         q: &wgpu::Queue,
@@ -2583,7 +2679,10 @@ mod native {
         renderer.present(q, &mut c, engine, camera, prefs, Overlays::default());
         renderer.present_clean(d, q, &mut c, engine, camera, prefs);
         q.submit([c.finish()]);
-        wait(d)
+        wait(d)?;
+        capture_cells_frame(
+            d, q, engine, renderer, project, prefs, camera, samples, highlight,
+        )
     }
     fn cells_fixture_checks(
         d: &wgpu::Device,
@@ -2724,8 +2823,8 @@ mod native {
                 let plan = read(d, q, cells.sprite_plan_buffer(), 16)?;
                 let mode = u32::from_le_bytes(plan[8..12].try_into().unwrap());
                 ensure!(
-                    mode == expected_mode,
-                    "Selection fixture expected planner mode {expected_mode}, got {mode} with {count} live particles"
+                    mode == expected_mode || (expected_mode == 1 && mode == 2),
+                    "Selection fixture expected planner mode {expected_mode} (or listed batching for 1), got {mode} with {count} live particles"
                 );
                 let image = floats(&tex(d, q, &cells.images[cells.active], cells.padded, 16)?);
                 let selected = floats(&tex(d, q, cells.selected_texture(), cells.padded, 4)?);
@@ -4491,11 +4590,136 @@ mod native {
             json!({"mode":"cells-resolve","population":engine.sizing.entity_count,"simulation_frame":engine.frame_count,"captures":capture_dir,"baseline":baseline_dir,"max_channel_difference_255":baseline_dir.map(|_|worst),"cases":results,"timing":timing}),
         )
     }
+    fn cells_planner_boundaries(d: &wgpu::Device, q: &wgpu::Queue) -> Result<serde_json::Value> {
+        use primordial_soup::gpu;
+        let listed = gpu::shader("cellsPlan.wgsl").contains("LISTED_BATCHES");
+        let pipeline = d.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+            label: Some("Cells planner boundary contract"),
+            layout: None,
+            module: &gpu::module(d, "cellsPlan.wgsl"),
+            entry_point: Some("plan_batches"),
+            compilation_options: Default::default(),
+            cache: None,
+        });
+        let buffer = |label, size, usage| {
+            d.create_buffer(&wgpu::BufferDescriptor {
+                label: Some(label),
+                size,
+                usage,
+                mapped_at_creation: false,
+            })
+        };
+        let uniforms = buffer(
+            "planner screen",
+            176,
+            wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        );
+        let settings = buffer(
+            "planner settings",
+            32,
+            wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        );
+        let storage = wgpu::BufferUsages::STORAGE
+            | wgpu::BufferUsages::COPY_DST
+            | wgpu::BufferUsages::COPY_SRC;
+        let plan = buffer("planner counters", 16, storage);
+        let indirect = buffer("planner indirect", 128, storage);
+        let bindings = [(0, &uniforms), (4, &plan), (5, &settings), (9, &indirect)].map(
+            |(binding, buffer)| wgpu::BindGroupEntry {
+                binding,
+                resource: buffer.as_entire_binding(),
+            },
+        );
+        let group = d.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("planner boundary bindings"),
+            layout: &pipeline.get_bind_group_layout(0),
+            entries: &bindings,
+        });
+        let mut screen = [0u32; 44];
+        screen[8] = 19.0f32.to_bits();
+        screen[9] = 17.0f32.to_bits();
+        q.write_buffer(&uniforms, 0, bytemuck::cast_slice(&screen));
+        // Eleven particles split 4/4/3; two spare indirect slots must remain untouched.
+        let cases = [
+            ("compact_at_bound", 4u32, 10u32, 10u32, 9u32, 0u32),
+            ("list_capacity_exact", 5, 10, 10, 9, 2),
+            ("list_capacity_overflow", 5, 11, 10, 9, 1),
+            ("empty_unsafe_bound", 5, 0, 10, 9, 2),
+            ("benefit_equal", 5, 33, 40, 9, 1),
+            ("benefit_one_below", 5, 32, 40, 9, 2),
+            ("nonwrap_benefit", 5, 2, 10, 1, 2),
+            ("nonwrap_equal", 5, 3, 10, 1, 1),
+        ];
+        let mut results = Vec::new();
+        for (name, bound, entries, capacity, copies, candidate_mode) in cases {
+            let mode = if listed {
+                candidate_mode
+            } else {
+                candidate_mode.min(1)
+            };
+            q.write_buffer(
+                &settings,
+                0,
+                bytemuck::cast_slice(&[4u32, 3, capacity, copies, 11, 4, 5, 0]),
+            );
+            q.write_buffer(
+                &plan,
+                0,
+                bytemuck::cast_slice(&[bound, entries, u32::MAX, 0]),
+            );
+            q.write_buffer(&indirect, 0, bytemuck::cast_slice(&[0xfeedfacdu32; 32]));
+            let mut encoder = d.create_command_encoder(&Default::default());
+            {
+                let mut pass = encoder.begin_compute_pass(&Default::default());
+                pass.set_pipeline(&pipeline);
+                pass.set_bind_group(0, &group, &[]);
+                pass.dispatch_workgroups(1, 1, 1);
+            }
+            q.submit([encoder.finish()]);
+            let counters = read(d, q, &plan, 16)?;
+            ensure!(
+                counters == bytemuck::cast_slice::<u32, u8>(&[bound, entries, mode, 0]),
+                "Planner mode/counters differ at {name}"
+            );
+            let mut expected = [[0xfeedfacdu32; 4]; 8];
+            for (batch, original_count) in [4u32, 4, 3].into_iter().enumerate() {
+                let instances = match mode {
+                    0 => {
+                        if batch == 0 {
+                            entries
+                        } else {
+                            0
+                        }
+                    }
+                    2 => entries,
+                    _ => original_count * copies,
+                };
+                expected[batch] = [4, instances, 0, 0];
+                expected[5 + batch] = if mode == 0 && batch > 0 {
+                    [0, 1, 1, 0]
+                } else {
+                    [3, 3, 1, 0]
+                };
+            }
+            let actual = read(d, q, &indirect, 128)?;
+            ensure!(
+                actual == bytemuck::cast_slice::<[u32; 4], u8>(&expected),
+                "Planner draw/average/guard slots differ at {name}"
+            );
+            results.push(json!({"case":name,"bound":bound,"entries":entries,"capacity":capacity,
+                "copies":copies,"mode":mode,"draw_args":&expected[..3],"average_args":&expected[5..],"guard_slots_unchanged":true}));
+        }
+        Ok(
+            json!({"implementation":if listed {"listed-batches"} else {"original-batches"},
+            "production_shader":"cellsPlan.wgsl:plan_batches","particle_batch_counts":[4,4,3],"cases":results}),
+        )
+    }
     fn cells_checks(
         d: &wgpu::Device,
         q: &wgpu::Queue,
         workgroup: u32,
     ) -> Result<serde_json::Value> {
+        let planner_boundaries = cells_planner_boundaries(d, q)?;
         let wash = cells_wash_checks(d, q, workgroup)?;
         let fixtures = cells_fixture_checks(d, q, workgroup)?;
         let mapping = cells_mapping_checks(d, q, workgroup)?;
@@ -4639,7 +4863,7 @@ mod native {
             }
         }
         Ok(
-            json!({"scalar_count":total,"finite_accumulation":true,"unchanged_simulation":true,"extra_bytes":extra_bytes,"render":"artifacts/cells-prototype.png","visuals":visuals,"wash":wash,"fixtures":fixtures,"mapping":mapping,"density":density,"networks":networks,"population":65536,"simulation_frame":engine.frame_count,"project":project}),
+            json!({"scalar_count":total,"finite_accumulation":true,"unchanged_simulation":true,"extra_bytes":extra_bytes,"render":"artifacts/cells-prototype.png","visuals":visuals,"planner_boundaries":planner_boundaries,"wash":wash,"fixtures":fixtures,"mapping":mapping,"density":density,"networks":networks,"population":65536,"simulation_frame":engine.frame_count,"project":project}),
         )
     }
     pub fn run() -> Result<()> {

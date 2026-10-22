@@ -17,5 +17,6 @@ struct BatchSettings {
 }
 // Read-only view of the plan the GPU writes before the sprite passes.
 struct BatchPlan { bound:u32, entries:u32, mode:u32, _pad:u32 }
-// Mode 0 draws every listed copy in one pass; mode 1 is the original particle batching.
+// Listed batches retain the original particle ranges and integer conversion boundaries.
 const COMPACT:u32=0u;
+const LISTED_BATCHES:u32=2u;

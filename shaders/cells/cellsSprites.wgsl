@@ -31,15 +31,24 @@ fn sprite(e:Entity,center:vec2f,radius:f32,amplitude:f32,vi:u32)->Out {
   return sprite(e,center,radii[index],bitcast<f32>(s.y),vi);
  }
  let copies=select(1u,9u,c.camera.w==1.0);
- let instance=slot.x*batch.size*copies+i;
- let e=particles[instance/copies];
+ var index:u32;var copy:u32;
+ if(plan.mode==LISTED_BATCHES){
+  index=sprites[i].x>>4u;
+  let first=slot.x*batch.size;
+  if(index<first || index>=min(first+batch.size,batch.count)){return o;}
+  copy=sprites[i].x&15u;
+ }else{
+  let instance=slot.x*batch.size*copies+i;
+  index=instance/copies;copy=instance%copies;
+ }
+ let e=particles[index];
  if(e_is_dead(e)){return o;}
  let uv=cell_uv(e_pos(e));
  var radius=sprite_radius(uv);
  // Disjoint periodic copies preserve the integer sum bound (one per particle/pixel).
  if(c.camera.w==1.0){let span=world_span();radius=min(radius,0.49*min(span.x,span.y));}
  var center:vec2f;
- if(!sprite_copy(uv,e_pos(e),radius,instance%copies,&center)){return o;}
+ if(!sprite_copy(uv,e_pos(e),radius,copy,&center)){return o;}
  return sprite(e,center,radius,sprite_amplitude(center,radius),vi);
 }
 @fragment fn fragment(i:Out)->@location(0) vec4f {

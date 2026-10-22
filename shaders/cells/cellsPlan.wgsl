@@ -88,7 +88,8 @@ var<workgroup> base:u32;
  let bound=atomicLoad(&plan.bound);
  let entries=atomicLoad(&plan.entries);
  let compact=bound<=batch.limit && entries<=batch.capacity;
- plan.mode=select(1u,COMPACT,compact);
+ let listed=!compact && entries<=batch.capacity && entries<(batch.count*batch.copies)/max(batch.batches,1u);
+ plan.mode=select(select(1u,LISTED_BATCHES,listed),COMPACT,compact);
  let groups=(vec2u(c.screen.xy)+7u)/8u;
  for(var k=0u;k<batch.batches;k++){
   var instances=0u;
@@ -96,6 +97,8 @@ var<workgroup> base:u32;
   var work=vec4u(groups,1u,0u);
   if(compact){
    if(k==0u){instances=entries;}else{work=vec4u(0u,1u,1u,0u);}
+  }else if(listed){
+   instances=entries;
   }else{
    let first=k*batch.size;
    if(first<batch.count){instances=min(batch.size,batch.count-first)*batch.copies;}
