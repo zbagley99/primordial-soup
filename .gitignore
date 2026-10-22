@@ -38,3 +38,6 @@ __pycache__/
 /docs/*
 !/docs/assets/
 !/docs/images/
+
+# Local chart provenance contains workstation artifact paths.
+/docs/assets/**/plot-provenance.json
