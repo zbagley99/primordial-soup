@@ -923,12 +923,37 @@ mod native {
             Ok(())
         };
         save("entities.bin", entities)?;
-        for (name, buffer) in [
-            ("configs.bin", &engine.configs),
-            ("brain-memory.bin", &engine.brain_memory),
-        ] {
-            save(name, &read(d, q, buffer, buffer.size())?)?;
-        }
+        save(
+            "configs.bin",
+            &read(d, q, &engine.configs, engine.configs.size())?,
+        )?;
+        let native_memory = read(d, q, &engine.brain_memory, engine.brain_memory.size())?;
+        let brain_memory_representation = if project.config().mode()
+            == primordial_soup::network::Mode::Gru
+        {
+            let particles = engine.sizing.entity_count as usize;
+            let streams = if project.config().network_revision() >= 3 {
+                3
+            } else {
+                2
+            };
+            let canonical = primordial_soup::gpu::audit::interleave_gru_history(
+                &native_memory,
+                particles,
+                streams,
+            )?;
+            std::fs::write(directory.join("brain-memory-native.bin"), &native_memory)?;
+            save("brain-memory.bin", &canonical)?;
+            Some(
+                json!({"layout":"gru-stream-planar-vec4","particles":particles,"streams":streams,
+                "native_file":"brain-memory-native.bin","native_bytes":native_memory.len(),
+                "native_fnv1a64":bytes_hash(&native_memory),"canonical_file":"brain-memory.bin",
+                "canonical_encoding":"particle-major vec4 streams: base, mirror, revision3 heading; scalar bytes unchanged"}),
+            )
+        } else {
+            save("brain-memory.bin", &native_memory)?;
+            None
+        };
         let layout = engine.splat_layout();
         let native_splat = read(d, q, engine.splat_buffer(), layout.allocated_bytes)?;
         let canonical = canonical_splat(
@@ -975,6 +1000,7 @@ mod native {
         let metadata = json!({
             "format":"primordial-benchmark-state-v1","byte_order":"little_endian",
             "canvas_representation":canvas_representation,
+            "brain_memory_representation":brain_memory_representation,
             "hash":"fnv1a64 (comparison aid; compare raw bytes for exactness)",
             "project":project,"project_hash":primordial_soup::archive::hash_state(project),
             "project_json_fnv1a64":bytes_hash(project_json.as_bytes()),
@@ -1941,7 +1967,12 @@ mod native {
             // Particle 3 duplicates particle 0 with swapped stream histories.
             hs[6] = hs[1];
             hs[7] = hs[0];
-            q.write_buffer(&memory, 0, bytemuck::cast_slice(&hs));
+            let native_history = if mode == Mode::Gru {
+                primordial_soup::gpu::audit::planar_gru_history(bytemuck::cast_slice(&hs), 4, 2)?
+            } else {
+                bytemuck::cast_slice(&hs).to_vec()
+            };
+            q.write_buffer(&memory, 0, &native_history);
             let mut maximum_error = 0.0f32;
             for tick in 0..40 {
                 let mut inputs: [[f32; 4]; 8] = std::array::from_fn(|i| {
@@ -2004,7 +2035,10 @@ mod native {
                     "stream swap broke reflection equivalence"
                 );
                 if mode == Mode::Gru {
-                    let got = floats(&read(d, q, &memory, 128)?);
+                    let native = read(d, q, &memory, 128)?;
+                    let canonical =
+                        primordial_soup::gpu::audit::interleave_gru_history(&native, 4, 2)?;
+                    let got = floats(&canonical);
                     for i in 0..32 {
                         ensure!(
                             (got[i] - hs[i / 4][i % 4]).abs() < 3e-5,

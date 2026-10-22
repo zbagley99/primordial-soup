@@ -8,6 +8,7 @@ pub fn check(d: &wgpu::Device, q: &wgpu::Queue, path: Option<&str>) -> Result<Va
         Some(path) => std::fs::read_to_string(path)?,
         None => shader("network.wgsl").to_owned(),
     };
+    let planar_history = candidate.contains("fn brain_state_index(");
     let reference = include_str!("network_reference.wgsl").trim_end();
     let candidate =
         if candidate.starts_with(reference) && candidate.contains("fn brain_evaluate_pair(") {
@@ -27,6 +28,7 @@ pub fn check(d: &wgpu::Device, q: &wgpu::Queue, path: Option<&str>) -> Result<Va
                 "brain_input_row",
                 "brain_bias",
                 "brain_state_stride",
+                "brain_state_index",
                 "brain_heading_index",
                 "brain_clear",
                 "brain_motor",
@@ -141,8 +143,13 @@ pub fn check(d: &wgpu::Device, q: &wgpu::Queue, path: Option<&str>) -> Result<Va
                         }
                     })
                     .collect();
-                for memory in &memories {
-                    q.write_buffer(memory, 0, bytemuck::cast_slice(&initial));
+                for (i, memory) in memories.iter().enumerate() {
+                    let native = if i == 1 && mode == Mode::Gru && planar_history {
+                        planar_gru_history(bytemuck::cast_slice(&initial), COUNT, stride)?
+                    } else {
+                        bytemuck::cast_slice(&initial).to_vec()
+                    };
+                    q.write_buffer(memory, 0, &native);
                 }
                 for tick in 0..TICKS {
                     let mut values = Vec::with_capacity(COUNT * 12);
@@ -187,7 +194,12 @@ pub fn check(d: &wgpu::Device, q: &wgpu::Queue, path: Option<&str>) -> Result<Va
                         &format!("{context} outputs"),
                     )?;
                     let reference_memory = read(d, q, &memories[0])?;
-                    let paired_memory = read(d, q, &memories[1])?;
+                    let native_memory = read(d, q, &memories[1])?;
+                    let paired_memory = if mode == Mode::Gru && planar_history {
+                        interleaved_history_values(&native_memory, COUNT, stride)?
+                    } else {
+                        native_memory
+                    };
                     exact(
                         &reference_memory,
                         &paired_memory,

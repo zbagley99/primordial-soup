@@ -11,6 +11,36 @@ pub use paired::check as paired_contracts;
 mod occupancy;
 pub use occupancy::check as occupancy_contracts;
 
+#[path = "gru_history.rs"]
+mod history;
+pub use history::{interleave_gru_history, planar_gru_history};
+
+fn interleaved_history_values(
+    values: &[f32],
+    particles: usize,
+    streams: usize,
+) -> Result<Vec<f32>> {
+    Ok(
+        interleave_gru_history(bytemuck::cast_slice(values), particles, streams)?
+            .chunks_exact(4)
+            .map(|v| f32::from_le_bytes(v.try_into().unwrap()))
+            .collect(),
+    )
+}
+
+fn read_brain_history(d: &wgpu::Device, q: &wgpu::Queue, engine: &Engine) -> Result<Vec<f32>> {
+    let values = read(d, q, &engine.brain_memory)?;
+    if engine.mode == crate::network::Mode::Gru {
+        interleaved_history_values(
+            &values,
+            engine.sizing.entity_count as usize,
+            if engine.revision >= 3 { 3 } else { 2 },
+        )
+    } else {
+        Ok(values)
+    }
+}
+
 const WORDS: usize = 48;
 
 impl Engine {
@@ -77,12 +107,12 @@ impl Trace {
         );
         insert(
             &mut source,
-            "let h=brain_memory[index*brain_state_stride()+stream];",
+            "let h=brain_memory[brain_state_index(index,stream)];",
             "if(stream==0u){observations[index*12u+6u]=h;}",
         );
         insert(
             &mut source,
-            "brain_memory[index*brain_state_stride()+stream]=next;",
+            "brain_memory[brain_state_index(index,stream)]=next;",
             "if(stream==0u){observations[index*12u+7u]=next;observations[index*12u+8u]=z;}",
         );
         let m = d.create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -526,7 +556,12 @@ pub fn contracts(d: &wgpu::Device, q: &wgpu::Queue, workgroup: u32) -> Result<Va
             memory_values[(i / 2 * 3 + i % 2) * 4..(i / 2 * 3 + i % 2 + 1) * 4]
                 .copy_from_slice(&hs[i]);
         }
-        q.write_buffer(&memory, 0, bytemuck::cast_slice(&memory_values));
+        let native_memory = if mode == Mode::Gru {
+            planar_gru_history(bytemuck::cast_slice(&memory_values), 4, 3)?
+        } else {
+            bytemuck::cast_slice(&memory_values).to_vec()
+        };
+        q.write_buffer(&memory, 0, &native_memory);
         let mut max_error = 0.0f32;
         for tick in 0..40 {
             let mut xs: [[f32; 7]; 8] = std::array::from_fn(|i| {
@@ -592,7 +627,7 @@ pub fn contracts(d: &wgpu::Device, q: &wgpu::Queue, workgroup: u32) -> Result<Va
                 "revision 3 stream reflection mismatch"
             );
             if mode == Mode::Gru {
-                let got = read(d, q, &memory)?;
+                let got = interleaved_history_values(&read(d, q, &memory)?, 4, 3)?;
                 for i in 0..8 {
                     for j in 0..4 {
                         ensure!(
@@ -826,7 +861,7 @@ pub fn contracts(d: &wgpu::Device, q: &wgpu::Queue, workgroup: u32) -> Result<Va
             Ok(())
         };
         tick(&mut live, &project, 7)?;
-        let state = read(d, q, &live.brain_memory)?;
+        let state = read_brain_history(d, q, &live)?;
         ensure!(
             state.iter().all(|v| v.is_finite()) && state.iter().any(|v| *v != 0.0),
             "revision 3 state did not advance"
@@ -836,13 +871,13 @@ pub fn contracts(d: &wgpu::Device, q: &wgpu::Queue, workgroup: u32) -> Result<Va
         display.config_mut().color_offset += 0.1;
         live.upload_project(d, q, &display)?;
         ensure!(
-            read(d, q, &live.brain_memory)? == state,
+            read_brain_history(d, q, &live)? == state,
             "display upload changed revision 3 state"
         );
         project.config_mut().adopt_parent(weights[0].clone(), 0.75);
         live.upload_project(d, q, &project)?;
         ensure!(
-            read(d, q, &live.brain_memory)?.iter().all(|v| *v == 0.0),
+            read_brain_history(d, q, &live)?.iter().all(|v| *v == 0.0),
             "adoption retained revision 3 state"
         );
         ensure!(
@@ -872,7 +907,7 @@ pub fn contracts(d: &wgpu::Device, q: &wgpu::Queue, workgroup: u32) -> Result<Va
         );
         live.reset();
         tick(&mut live, &project, 1)?;
-        let reset = read(d, q, &live.brain_memory)?;
+        let reset = read_brain_history(d, q, &live)?;
         if mode == Mode::Gru {
             ensure!(
                 reset
@@ -886,7 +921,7 @@ pub fn contracts(d: &wgpu::Device, q: &wgpu::Queue, workgroup: u32) -> Result<Va
         tick(&mut live, &project, 1)?;
         if mode == Mode::Gru {
             ensure!(
-                read(d, q, &live.brain_memory)?
+                read_brain_history(d, q, &live)?
                     .chunks_exact(12)
                     .all(|v| v[..8].iter().all(|h| *h == 0.0)),
                 "hazard retained GRU history"
@@ -903,7 +938,7 @@ pub fn contracts(d: &wgpu::Device, q: &wgpu::Queue, workgroup: u32) -> Result<Va
         q.write_buffer(&live.entities, 0, bytemuck::cast_slice(&outside));
         tick(&mut live, &project, 1)?;
         ensure!(
-            read(d, q, &live.brain_memory)?.iter().all(|v| *v == 0.0),
+            read_brain_history(d, q, &live)?.iter().all(|v| *v == 0.0),
             "death retained revision 3 state"
         );
         // Same-mode revision switches must replace evaluator and state layout.
@@ -932,7 +967,7 @@ pub fn contracts(d: &wgpu::Device, q: &wgpu::Queue, workgroup: u32) -> Result<Va
         );
         tick(&mut live, &project, 3)?;
         ensure!(
-            read(d, q, &live.brain_memory)?
+            read_brain_history(d, q, &live)?
                 .iter()
                 .all(|v| v.is_finite()),
             "revision transition corrupted state"

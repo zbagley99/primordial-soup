@@ -28,11 +28,15 @@ fn brain_state_stride()->u32 {
     if(BRAIN_REVISION>=3u){return select(1u,3u,NETWORK_MODE==2u);}
     return 2u;
 }
-fn brain_heading_index(index:u32)->u32 {return index*brain_state_stride()+select(0u,2u,NETWORK_MODE==2u);}
+fn brain_state_index(index:u32,stream:u32)->u32 {
+    if(NETWORK_MODE==2u){return stream*(arrayLength(&brain_memory)/brain_state_stride())+index;}
+    return index*brain_state_stride()+stream;
+}
+fn brain_heading_index(index:u32)->u32 {return brain_state_index(index,select(0u,2u,NETWORK_MODE==2u));}
 fn brain_clear(index: u32) {
     if (NETWORK_MODE == 2u) {
-        brain_memory[index*brain_state_stride()] = vec4f(0.0);
-        brain_memory[index*brain_state_stride()+1u] = vec4f(0.0);
+        brain_memory[brain_state_index(index,0u)] = vec4f(0.0);
+        brain_memory[brain_state_index(index,1u)] = vec4f(0.0);
     }
     if(BRAIN_REVISION>=3u && NETWORK_MODE!=0u){brain_memory[brain_heading_index(index)]=vec4f(0.0);}
 }
@@ -56,7 +60,7 @@ fn brain_evaluate(slot: i32, input: vec4f, index: u32, stream: u32, extra:vec3f)
         }
         return brain_motor(result);
     }
-    let h=brain_memory[index*brain_state_stride()+stream];
+    let h=brain_memory[brain_state_index(index,stream)];
     var z=vec4f(0.0);
     var r=vec4f(0.0);
     for (var i=0u; i<4u; i++) {
@@ -70,7 +74,7 @@ fn brain_evaluate(slot: i32, input: vec4f, index: u32, stream: u32, extra:vec3f)
         let n=tanh(brain_bias(slot,select(104u,140u,modern),i)+brain_input_row(slot,select(72u,96u,modern),i,x,extra)+brain_row(slot,select(88u,124u,modern),4u,i,r*h));
         next[i]=z[i]*h[i]+(1.0-z[i])*n;
     }
-    brain_memory[index*brain_state_stride()+stream]=next;
+    brain_memory[brain_state_index(index,stream)]=next;
     for (var i=0u; i<4u; i++) {result[i]=brain_bias(slot,select(124u,160u,modern),i)+brain_row(slot,select(108u,144u,modern),4u,i,next);}
     return brain_motor(result);
 }
