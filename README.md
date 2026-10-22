@@ -13,8 +13,7 @@ run on the local GPU.
 
 The original WGSL model, initial conditions, display pipeline, 131 shipped
 presets, v8/v9 project files and share codecs are retained. The editor uses egui
-on native and web. Provenance is in [docs/REFERENCE.md](docs/REFERENCE.md), and
-executed evidence is in [docs/RESULTS.md](docs/RESULTS.md).
+on native and web.
 
 ## Run on Linux / NVIDIA
 
@@ -122,11 +121,7 @@ not advance the world.
 Cells is more expensive: the bounded native RTX 3090 check measured 6.39 ms at
 1080p with 600,000 particles and one render sample, versus 0.55 ms for Classic;
 Cells-only logical storage was about 214 MiB. These are rendering measurements,
-not simulation throughput or browser FPS. See the [rendering contract](docs/CELLULAR_RENDERING_SPEC.md)
-and [validation report](docs/CELLULAR_RENDERING_VALIDATION.md).
-
-The [latest optimization results](docs/OPTIMIZATION_RESULTS.md) record matched
-before/after measurements and exact image comparisons for the current renderer.
+not simulation throughput or browser FPS.
 
 ## Build WebAssembly
 
@@ -175,7 +170,7 @@ Export textures are allocated only during screenshot/video work and released
 afterwards. PNG readback copies only the selected crop and avoids a separate
 full-window CPU pixel allocation. `?debug` displays committed WASM linear memory and the JS heap
 (when the browser exposes it). These readings are separate from total tab RAM
-and GPU memory; the recorded comparison is in [results](docs/RESULTS.md).
+and GPU memory.
 
 ## Host on Cloudflare Free
 
@@ -213,8 +208,6 @@ bounded; stopped particles retain a heading without receiving a random velocity
 kick. MLP has 100 parameters; GRU has 164 and two independent memory streams.
 Existing saved MLP/GRU rules retain their original sensors and equations.
 Press **B / Randomize Behavior** to start the revised model in an older bank.
-See the [IO specification](docs/NETWORK_IO_SPEC.md) and
-[evaluation results](docs/NETWORK_IO_RESULTS.md).
 
 In **More → Simulation → Timing & Experiments**, **Run N ticks** starts a clean comparison,
 clears painted fields too, disables camera influence and automatic calibration,
@@ -234,9 +227,6 @@ Current projects, custom saves, and checkpoints retain mode banks across saves
 and reloads. Runtime particle/trail/memory state is not saved. Extended research
 archives use version 3; graph replay/import remains outside the app.
 
-See [the explanation](docs/DETAILS.md), [the specification](docs/NETWORK_MODES_SPEC.md),
-and [implementation evidence](docs/NETWORK_MODES_RESULTS.md).
-
 ## Explore
 
 Start with **Presets → Core · Fluoddity**. In **Inspector → World**, choose 4 or 16 cohorts,
@@ -255,7 +245,7 @@ The bottom dock keeps playback, **Presets**, interaction tools, **Inspect**, and
 **More** together. **Inspect** opens World, Look, Settings, and contextual Brush
 controls. Selecting a tool leaves the inspector closed; open Brush settings
 from the tool menu. Reset and stepping are also available in **More**, with
-Step beside playback on desktop. See the [UI design and validation notes](docs/UI_DESIGN.md).
+Step beside playback on desktop.
 The physics speed bar stays visible above playback and adjusts the active
 frame-based or fixed-tick clock. **X** hides it with the other controls.
 The separate panel beside the physics dock has outlined buttons for **1**,
@@ -302,17 +292,13 @@ rendered with `--benchmark --style cells --preset Tangle --world 0.5 --steps 5
 --blur-samples 1 --setup-ticks 3000 --warmup 0 --frames 1 --width 1602
 --height 1602 --no-profile --shot FILE.png`, then center-cropped to 1600 × 900,
 which leaves out the one-pixel world outline. Validation runs are serial and
-bounded. See [docs/VALIDATION.md](docs/VALIDATION.md) for the full procedure and
-the distinction between GPU timestamps, CPU encoding and displayed frame rate.
+bounded. GPU timestamps, CPU encoding time and displayed frame rate measure
+different parts of the workload.
 `--numerical` runs short independent analytical comparisons, finite-value checks
 and serial/batched comparisons. `--benchmark --no-profile` measures the same
 fixed workload without timestamp instrumentation; calibration is always off in
 the checker. The default workgroup remains 256 where supported, falling back
 to 128 or 64 by device limits. Support alone does not establish a faster choice.
-
-Measured changes and exactness checks are recorded in the
-[network performance report](docs/NETWORK_PERFORMANCE_RESULTS.md) and
-[Cells renderer report](docs/OPTIMIZATION_RESULTS.md).
 
 Test results cannot establish that a program is absolutely bug-free. Physical
 camera devices and GPUs/browsers other than the recorded test environment need

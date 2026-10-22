@@ -33,3 +33,8 @@ __pycache__/
 /*.tgz
 /*.7z
 /*.pdf
+
+# Internal specs and investigation notes stay local; charts and images may be tracked.
+/docs/*
+!/docs/assets/
+!/docs/images/
