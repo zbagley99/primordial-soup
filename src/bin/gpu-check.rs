@@ -208,6 +208,7 @@ mod native {
     fn smoke(d: &wgpu::Device, q: &wgpu::Queue, workgroup: u32) -> Result<serde_json::Value> {
         camera_smoke(d, q)?;
         export_target_smoke(d, q, workgroup)?;
+        let renderer_uniforms = renderer_uniform_smoke(d, q, workgroup)?;
         let s = Sizing {
             entity_count: 4096,
             canvas: [64, 64],
@@ -367,7 +368,139 @@ mod native {
             "Trails paint was empty"
         );
         Ok(
-            json!({"uniform_ring_matches_serial":true,"finite_particles_and_trails":true,"splat_drained":true,"boundary_modes":["bounce","wrap","reset","kill"],"reset_resurrects":true,"paused_gpu_pick_and_adopt":true,"independent_painted_layers":true,"synthetic_webcam_edges_motion":true,"lazy_export_target_matches_display":true,"repeated_exports_release_and_recreate":true,"resize_invalidates_export_target":true,"cropped_png_readback_matches_cpu_oracle":true,"particles":4096,"canvas":[64,64]}),
+            json!({"renderer_uniform_cache":renderer_uniforms,"uniform_ring_matches_serial":true,"finite_particles_and_trails":true,"splat_drained":true,"boundary_modes":["bounce","wrap","reset","kill"],"reset_resurrects":true,"paused_gpu_pick_and_adopt":true,"independent_painted_layers":true,"synthetic_webcam_edges_motion":true,"lazy_export_target_matches_display":true,"repeated_exports_release_and_recreate":true,"resize_invalidates_export_target":true,"cropped_png_readback_matches_cpu_oracle":true,"particles":4096,"canvas":[64,64]}),
+        )
+    }
+    fn renderer_uniform_smoke(
+        d: &wgpu::Device,
+        q: &wgpu::Queue,
+        workgroup: u32,
+    ) -> Result<serde_json::Value> {
+        use primordial_soup::cells::Style;
+        let mut project = Project::default();
+        project
+            .config_mut()
+            .switch_mode(primordial_soup::network::Mode::Gru, 0.875);
+        let mut engine = Engine::new(
+            d,
+            q,
+            Sizing {
+                entity_count: 4096,
+                canvas: [64, 64],
+                sqrt_world_size: 1.0,
+            },
+            &project,
+            workgroup,
+        )?;
+        step(d, q, &mut engine, &project, 48)?;
+        let frame = engine.frame_count;
+        let state = || -> Result<Vec<Vec<u8>>> {
+            let mut bytes = Vec::new();
+            for buffer in [
+                &engine.entities,
+                &engine.configs,
+                &engine.brain_memory,
+                engine.splat_buffer(),
+            ] {
+                bytes.push(read(d, q, buffer, buffer.size())?);
+            }
+            bytes.push(mapped(d, &engine.snapshot_rules(d, q))?);
+            for canvas in &engine.canvas {
+                bytes.push(tex(d, q, canvas, engine.sizing.canvas, 8)?);
+            }
+            bytes.push(tex(
+                d,
+                q,
+                engine.audit_field_texture(),
+                engine.field_size,
+                8,
+            )?);
+            Ok(bytes)
+        };
+        let before = state()?;
+        let mut prefs = Preferences::default();
+        prefs.cells.style = Style::Classic;
+        let mut camera = Camera::default();
+        let mut samples = 1;
+        let mut highlight = -1.0;
+        let mut size = [160, 128];
+        let mut reused = Renderer::new(d, &engine, size)?;
+        let cases = [
+            "warm",
+            "unchanged",
+            "pan_zoom",
+            "palette",
+            "highlight",
+            "temporal_multi",
+            "temporal_single",
+            "bloom_parameters",
+            "bloom_off",
+            "bloom_on",
+            "resize",
+            "cells",
+            "trail_view",
+            "classic",
+            "replacement",
+        ];
+        for name in cases {
+            match name {
+                "pan_zoom" => {
+                    camera.pan = [0.2, -0.15];
+                    camera.zoom = 2.0;
+                }
+                "palette" => {
+                    project.config_mut().color_sensitivity = 0.35;
+                    project.config_mut().color_offset = 0.25;
+                }
+                "highlight" => highlight = 0.0,
+                "temporal_multi" => samples = 3,
+                "temporal_single" => samples = 1,
+                "bloom_parameters" => {
+                    prefs.bloom_threshold = 0.15;
+                    prefs.bloom_radius = 1.7;
+                }
+                "bloom_off" => prefs.bloom_enabled = false,
+                "bloom_on" => prefs.bloom_enabled = true,
+                "resize" => {
+                    size = [192, 96];
+                    reused.resize(d, &engine, size)?;
+                }
+                "cells" => prefs.cells.style = Style::Cells,
+                "trail_view" => camera.trail_mode = true,
+                "classic" => {
+                    camera.trail_mode = false;
+                    prefs.cells.style = Style::Classic;
+                }
+                "replacement" => reused = Renderer::new(d, &engine, size)?,
+                _ => {}
+            }
+            let mut fresh = Renderer::new(d, &engine, size)?;
+            for renderer in [&mut reused, &mut fresh] {
+                if prefs.cells.style == Style::Cells && renderer.cells.is_none() {
+                    renderer.commit_cells(renderer.prepare_cells(d, &engine, &prefs.cells)?);
+                }
+                cells_frame(
+                    d, q, &engine, renderer, &project, &prefs, &camera, samples, highlight,
+                )?;
+            }
+            ensure!(
+                tex(d, q, reused.output_texture(), size, 4)?
+                    == tex(d, q, fresh.output_texture(), size, 4)?,
+                "Cached renderer display differs from fresh renderer: {name}"
+            );
+            ensure!(
+                tex(d, q, reused.clean_texture()?, size, 4)?
+                    == tex(d, q, fresh.clean_texture()?, size, 4)?,
+                "Cached renderer clean export differs from fresh renderer: {name}"
+            );
+        }
+        ensure!(
+            engine.frame_count == frame && state()? == before,
+            "Rendering changed frozen simulation state"
+        );
+        Ok(
+            json!({"cases":cases,"display_and_clean_exact":true,"simulation_state_unchanged":true,
+            "mode":"gru","ticks":frame,"particles":4096}),
         )
     }
     fn export_target_smoke(d: &wgpu::Device, q: &wgpu::Queue, workgroup: u32) -> Result<()> {

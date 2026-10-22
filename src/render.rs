@@ -145,6 +145,14 @@ fn pipeline(
     })
 }
 
+fn uniform_changed<const N: usize>(previous: &mut Option<[u32; N]>, words: &[u32; N]) -> bool {
+    if previous.as_ref() == Some(words) {
+        return false;
+    }
+    *previous = Some(*words);
+    true
+}
+
 struct Targets {
     hdr: wgpu::TextureView,
     accum: wgpu::TextureView,
@@ -192,6 +200,11 @@ pub struct Renderer {
     clean_uniform: wgpu::Buffer,
     down_uniforms: Vec<wgpu::Buffer>,
     up_uniforms: Vec<wgpu::Buffer>,
+    uploaded_view: Option<[u32; 12]>,
+    uploaded_particle: Option<[u32; 176]>,
+    uploaded_accum: Option<[u32; 4]>,
+    uploaded_down: [Option<[u32; 4]>; LEVELS],
+    uploaded_up: [Option<[u32; 4]>; LEVELS],
     trail_group: wgpu::BindGroup,
     trail_textures: [wgpu::BindGroup; 2],
     particle_group: wgpu::BindGroup,
@@ -333,6 +346,11 @@ impl Renderer {
             clean_uniform,
             down_uniforms,
             up_uniforms,
+            uploaded_view: None,
+            uploaded_particle: None,
+            uploaded_accum: None,
+            uploaded_down: [None; LEVELS],
+            uploaded_up: [None; LEVELS],
             trail_group,
             trail_textures,
             particle_group,
@@ -684,7 +702,9 @@ impl Renderer {
         self.bloom_valid = None;
         self.direct = samples == 1;
         let view = self.view(e, camera);
-        q.write_buffer(&self.view_uniform, 0, bytemuck::cast_slice(&view));
+        if uniform_changed(&mut self.uploaded_view, &view) {
+            q.write_buffer(&self.view_uniform, 0, bytemuck::cast_slice(&view));
+        }
         let mut particle = [0u32; 176];
         particle[..8].copy_from_slice(&view[..8]);
         particle[8] = 1.5f32.to_bits();
@@ -696,12 +716,13 @@ impl Renderer {
             particle[16 + i * 4 + 2] = (config.color_sensitivity as f32).to_bits();
             particle[16 + i * 4 + 3] = (config.color_offset as f32).to_bits();
         }
-        q.write_buffer(&self.particle_uniform, 0, bytemuck::cast_slice(&particle));
-        q.write_buffer(
-            &self.accum_uniform,
-            0,
-            bytemuck::cast_slice(&[1.0 / samples.max(1) as f32, 0.0, 0.0, 0.0]),
-        );
+        if uniform_changed(&mut self.uploaded_particle, &particle) {
+            q.write_buffer(&self.particle_uniform, 0, bytemuck::cast_slice(&particle));
+        }
+        let accum = [(1.0 / samples.max(1) as f32).to_bits(), 0, 0, 0];
+        if uniform_changed(&mut self.uploaded_accum, &accum) {
+            q.write_buffer(&self.accum_uniform, 0, bytemuck::cast_slice(&accum));
+        }
     }
     fn view(&self, e: &Engine, camera: &Camera) -> [u32; 12] {
         let mut u = [0; 12];
@@ -863,7 +884,9 @@ impl Renderer {
                     prefs.bloom_threshold.to_bits(),
                     u32::from(i == 0),
                 ];
-                q.write_buffer(&self.down_uniforms[i], 0, bytemuck::cast_slice(&u));
+                if uniform_changed(&mut self.uploaded_down[i], &u) {
+                    q.write_buffer(&self.down_uniforms[i], 0, bytemuck::cast_slice(&u));
+                }
                 gpu::draw(
                     encoder,
                     &self.targets.mips[i],
@@ -881,16 +904,15 @@ impl Renderer {
             }
             for i in (1..LEVELS).rev() {
                 let size = self.targets.mip_sizes[i];
-                q.write_buffer(
-                    &self.up_uniforms[i],
+                let u = [
+                    (1.0 / size[0] as f32).to_bits(),
+                    (1.0 / size[1] as f32).to_bits(),
+                    prefs.bloom_radius.to_bits(),
                     0,
-                    bytemuck::cast_slice(&[
-                        1.0 / size[0] as f32,
-                        1.0 / size[1] as f32,
-                        prefs.bloom_radius,
-                        0.0,
-                    ]),
-                );
+                ];
+                if uniform_changed(&mut self.uploaded_up[i], &u) {
+                    q.write_buffer(&self.up_uniforms[i], 0, bytemuck::cast_slice(&u));
+                }
                 gpu::draw(
                     encoder,
                     &self.targets.mips[i - 1],
@@ -999,6 +1021,21 @@ impl Renderer {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn uniform_cache_uploads_initial_zero_and_every_bit_change() {
+        let mut previous = None;
+        assert!(uniform_changed(&mut previous, &[0; 4]));
+        assert!(!uniform_changed(&mut previous, &[0; 4]));
+        for words in [
+            [(-0.0f32).to_bits(), 0, 0, 0],
+            [0, 0x7fc00001, 0, 0],
+            [0, 0x7fc00002, 0, 0],
+            [0; 4],
+        ] {
+            assert!(uniform_changed(&mut previous, &words));
+            assert!(!uniform_changed(&mut previous, &words));
+        }
+    }
     #[test]
     fn temporal_schedule_weights_actual_sample_count() {
         for steps in 1..=120 {
